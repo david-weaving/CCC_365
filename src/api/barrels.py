@@ -12,8 +12,12 @@ with db.engine.begin() as connection:
         # I am going to do the logic right here and then figure out how this works.
         # I am going to assume every barrell costs 10 gold, and I know it takes 100ml to make one potion. Let's also assume that each barrel contains 25ml of green.
 
-        current_gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
-        current_potions = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+        result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+        current_gold = result.scalar() # scalar() returns the first value from the row
+        
+        result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+        current_potions = result.scalar()
+        
         cost_of_potion_barrels = 10
         g_barrel = 0
         
