@@ -20,8 +20,9 @@ with db.engine.begin() as connection:
         while current_potions < 10 and gold >= 10: # while we have less than 10 or we can afford the potions
                 current_gold -= cost_of_potion_barrels
                 g_barrel += 25
-                if g_barrel == 100: we have enough to make a potion!
+                if g_barrel == 100: # we have enough to make a potion!
                         current_potions += 1
+                        g_barrel = 0
                 
         
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold=current_gold"))
