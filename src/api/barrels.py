@@ -7,7 +7,7 @@ import sqlalchemy
 from src import database as db
 
 with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions 1"))  # THIS DOES NOTHING YET -- NEED TO IMPLEMENT LOGIC
+        result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = 1"))  # THIS DOES NOTHING YET -- NEED TO IMPLEMENT LOGIC
 
 # ----------------------------------------------------------------------------
 router = APIRouter(
