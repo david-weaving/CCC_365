@@ -12,8 +12,20 @@ with db.engine.begin() as connection:
         # I am going to do the logic right here and then figure out how this works.
         # I am going to assume every barrell costs 10 gold, and I know it takes 100ml to make one potion. Let's also assume that each barrel contains 25ml of green.
 
-        result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
-        print(result)
+        current_gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+        current_potions = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+        cost_of_potion_barrels = 10
+        g_barrel = 0
+        
+        while current_potions < 10 and gold >= 10: # while we have less than 10 or we can afford the potions
+                current_gold -= cost_of_potion_barrels
+                g_barrel += 25
+                if g_barrel == 100: we have enough to make a potion!
+                        current_potions += 1
+                
+        
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold=current_gold"))
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions=currebt_potions"))
         
 # ----------------------------------------------------------------------------
 router = APIRouter(
