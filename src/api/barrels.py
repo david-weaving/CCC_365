@@ -7,8 +7,14 @@ import sqlalchemy
 from src import database as db
 
 with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = 1"))  # THIS DOES NOTHING YET -- NEED TO IMPLEMENT LOGIC
+        # buy a new small green potion barell only if the number of potions in inventory is less than 10. Always mix
+        # available green ml if any exists. Offer up for sale in the catalog only the amount of green potions that actually exist currently in inventory.
+        # I am going to do the logic right here and then figure out how this works.
+        # I am going to assume every barrell costs 10 gold, and I know it takes 100ml to make one potion. Let's also assume that each barrel contains 25ml of green.
 
+        result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+        print(result)
+        
 # ----------------------------------------------------------------------------
 router = APIRouter(
     prefix="/barrels",
