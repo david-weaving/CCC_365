@@ -29,8 +29,8 @@ with db.engine.begin() as connection:
                         g_barrel = 0
                 
         
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold=gold"))
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions=current_potions"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold={gold}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions={current_potions}"))
         
 # ----------------------------------------------------------------------------
 router = APIRouter(
