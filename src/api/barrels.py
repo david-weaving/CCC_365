@@ -53,9 +53,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
             green_pots = result.scalar()
 
-            result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
-            green_ml = result.scalar()
-                                        
     for barrel in wholesale_catalog:
             # I want to purchase a barrel iff the barrel is green
         if barrel.potion_type[1] > 0: # making sure there is green ml in my barrel
