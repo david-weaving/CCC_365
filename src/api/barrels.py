@@ -48,14 +48,33 @@ class Barrel(BaseModel):
     sku: str
 
     ml_per_barrel: int
-    potion_type: list[int]
+    potion_type: list[int] # [r,g,b,d]
     price: int
 
     quantity: int
 
 @router.post("/deliver/{order_id}")
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
-    """ """
+    with db.engine.begin() as connection:
+            result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+            gold = result.scalar()
+                
+            result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")
+            green_pots = result.scalar()
+
+            result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")
+            green_ml = result.scalar()
+                                        
+        for barrel in barrels_delivered:
+            # I want to purchase a barrel iff the barrel is green
+            if barrel.potion_type[1] > 0: # making sure there is green ml in my barrel
+                if barrel.price <= gold and green_pots < 10: # if i can afford it
+                    gold -= barrel.price # deduct price
+                    green_ml += barrel.potion_type[1] # gain green_ml
+        
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold={gold}")
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml={green_ml}"))
+
     print(f"barrels delievered: {barrels_delivered} order_id: {order_id}")
 
     return "OK"
