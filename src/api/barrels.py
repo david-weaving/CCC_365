@@ -3,8 +3,8 @@ from pydantic import BaseModel
 from src.api import auth
 
 # MY CHANGES------------------------------------------------------------------ It works, now I need to figure out how to get it to work across the rest of my files
-# import sqlalchemy 
-# from src import database as db
+import sqlalchemy 
+from src import database as db
 
 # with db.engine.begin() as connection:
 #         # buy a new small green potion barell only if the number of potions in inventory is less than 10. Always mix
