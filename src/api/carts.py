@@ -85,6 +85,8 @@ def post_visits(visit_id: int, customers: list[Customer]):
 @router.post("/")
 def create_cart(new_cart: Customer):
     """ """
+    # create a unique id (incrementing value)
+    # OR create new table primary key will act as unique cart id
     return {"cart_id": 1}
 
 
@@ -95,7 +97,15 @@ class CartItem(BaseModel):
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
+    # item_sku is a potion: GREEN_POTION_1
+    # CartItem is the potion they want
+    # update cart and create cart database (two columns one with primary key unique ID and number of potions)
+    # make inventory checks in the checkout
+    
+    # cartItem will have quantity of potions wanted.
 
+
+    # update THE USERS CART AND ITEMS INTO A CART TABLE (DB)
     return "OK"
 
 
@@ -105,5 +115,7 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
+    # PULL USERS CART ID AND CHECK OUT
+    # UPDATE POTIONS AND GOLD IN DATABASE
 
     return {"total_potions_bought": 1, "total_gold_paid": 50}
