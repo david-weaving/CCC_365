@@ -15,7 +15,23 @@ class PotionInventory(BaseModel):
 
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
-    """ """
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
+        green_ml = result.scalar()
+
+        # no looping because im only recieving one index of potions
+        green_ml = green_ml - (100*potions_delivered[0].quantity)
+
+        print(f"How much Green ml is left after breweing: {green_ml}")
+        print(f"Number of potions made: {potions_delivered[0].quantity}")
+
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml={green_ml}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions={potions_delivered[0].quantity}"))
+
+        
+
+
+
     print(f"potions delievered: {potions_delivered} order_id: {order_id}")
 
     return "OK"
@@ -25,6 +41,11 @@ def get_bottle_plan():
     """
     Go from barrel to bottle.
     """
+    # GOAL: check how much green ml I have and bottle potions
+
+    # return quantity of potions.
+
+    # potion type needs to be [0,100,0,0]
 
     # Each bottle has a quantity of what proportion of red, blue, and
     # green potion to add.
@@ -32,10 +53,19 @@ def get_bottle_plan():
 
     # Initial logic: bottle all barrels into red potions.
 
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
+        green_ml = result.scalar()
+        quantity = 0
+        while green_ml >= 100:
+            green_ml -= 100 # take out 100 green_ml
+            quantity += 1 # give myself a green potion
+
+    print(f"Quantity of potions to make: {quantity}")
     return [
             {
-                "potion_type": [100, 0, 0, 0],
-                "quantity": 5,
+                "potion_type": [0, 100, 0, 0],
+                "quantity": quantity,
             }
         ]
 
