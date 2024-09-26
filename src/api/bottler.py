@@ -19,6 +19,9 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
         green_ml = result.scalar()
 
+        result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+        green_pots = result.scalar()
+
         # no looping because im only recieving one index of potions
         green_ml = green_ml - (100*potions_delivered[0].quantity)
 
@@ -26,7 +29,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         print(f"Number of potions made: {potions_delivered[0].quantity}")
 
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml={green_ml}"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions={potions_delivered[0].quantity}"))
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions={potions_delivered[0].quantity+green_pots}"))
 
         
 
