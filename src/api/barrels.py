@@ -45,23 +45,26 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         
     print(wholesale_catalog)
-    quantity = 0
+
     with db.engine.begin() as connection:
             result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
             gold = result.scalar()
                 
             result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
             green_pots = result.scalar()
-
+    quantity = 0
     for barrel in wholesale_catalog:
             # I want to purchase a barrel iff the barrel is green
-        if barrel.potion_type[1] == 1: # making sure there is green ml in my barrel
-            if barrel.price <= gold and green_pots < 10: # if i can afford it
-                gold -= barrel.price # deduct price
-                quantity += 1
-                
+        if barrel.sku == "SMALL_GREEN_BARREL" and green_pots < 10: # making sure there is green ml in my barrel
+            i = 1 # keeps track of barrel quantity (seeing how much I can afford)
+            
+            while barrel.price <= gold and i <= barrel.quantity:
+                 quantity = i
+                 i += 1
+                 gold -= barrel.price
+                 print(f"Quantity: {quantity}")
+                 
     print(f"Quantity: {quantity}")
-
     return [
         {
             "sku": "SMALL_GREEN_BARREL",
