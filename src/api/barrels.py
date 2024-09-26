@@ -55,7 +55,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
     for barrel in wholesale_catalog:
             # I want to purchase a barrel iff the barrel is green
-        if barrel.potion_type[1] > 0: # making sure there is green ml in my barrel
+        if barrel.potion_type[1] == 1: # making sure there is green ml in my barrel
             if barrel.price <= gold and green_pots < 10: # if i can afford it
                 gold -= barrel.price # deduct price
                 quantity += 1
