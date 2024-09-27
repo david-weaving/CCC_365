@@ -13,7 +13,7 @@ def get_catalog():
         result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
         green_pots = result.scalar()
     
-    print(f"Catalog has following items: Green Potions: {green_pots} and price is 50 gold ")
+    print(f"Catalog has following items: Green Potions: {green_pots} and price is 25 gold ")
 
 
     return [
@@ -21,7 +21,7 @@ def get_catalog():
                 "sku": "GREEN_POTION_1",
                 "name": "green potion",
                 "quantity": green_pots,
-                "price": 50,
+                "price": 25,
                 "potion_type": [0, 100, 0, 0],
             }
         ]
