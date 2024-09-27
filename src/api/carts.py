@@ -93,6 +93,8 @@ def create_cart(new_cart: Customer):
     
     cart_id = result.scalar()
 
+    print(f"Cart ID: {cart_id} succesfully created")
+
     return {"cart_id": cart_id}
 
 
@@ -116,9 +118,12 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
 
         grab_column = sum(grab_column) # checking to see if there are pots left
 
+        
+
         available_pots -= grab_column    
         
         if cart_item.quantity <= available_pots and available_pots > 0:
+            
             user_pots = cart_item.quantity
 
             connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={user_pots} WHERE id = {cart_id}"))
