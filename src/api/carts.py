@@ -151,7 +151,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         my_green_potions = result.scalar()
 
         if green_potions > 0:
-            final_price = green_potions * 50
+            final_price = green_potions * 25
             my_green_potions -= green_potions
 
             # update my db and gold
