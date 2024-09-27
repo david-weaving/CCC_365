@@ -36,7 +36,7 @@ def get_capacity_plan():
     """
 
     return {
-        "potion_capacity": 50,
+        "potion_capacity": 50, # used to both be 0
         "ml_capacity": 10000
         }
 
