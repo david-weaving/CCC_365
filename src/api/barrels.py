@@ -63,16 +63,20 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             i = 1 # keeps track of barrel quantity (seeing how much I can afford)
             
             while barrel.price <= gold and i <= barrel.quantity:
-                 quantity = i
-                 i += 1
-                 gold -= barrel.price
-                 print(f"Quantity: {quantity}")
+                quantity = i
+                i += 1
+                gold -= barrel.price
                  
-    print(f"Quantity: {quantity}")
-    return [
-        {
+    
+    barrels_to_buy = []
+
+    if quantity > 0:
+         barrels_to_buy.append(
+              {
             "sku": "SMALL_GREEN_BARREL",
             "quantity": quantity,
-        }
-    ]
+        } 
+        )
 
+    print(f"Quantity: {quantity}")
+    return barrels_to_buy
