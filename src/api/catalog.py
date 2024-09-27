@@ -13,6 +13,8 @@ def get_catalog():
         result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
         green_pots = result.scalar()
 
+    print(f"Number of green pots: {green_pots}")
+
 
     return [
             {
