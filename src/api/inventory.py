@@ -24,7 +24,8 @@ def get_inventory():
 
         result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
         gold = result.scalar()
-    
+
+    print(f"Inventory Log: Number of green potions: {green_pots}, Amount of ml in barrels: {green_ml}, Amount of gold held to my name: {gold}")
     return {"number_of_potions": green_pots, "ml_in_barrels": green_ml, "gold": gold}
 
 # Gets called once a day
