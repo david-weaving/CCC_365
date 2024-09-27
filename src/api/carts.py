@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from src.api import auth
 from enum import Enum
+import sqlalchemy 
+from src import database as db
+
 
 router = APIRouter(
     prefix="/carts",
@@ -85,9 +88,12 @@ def post_visits(visit_id: int, customers: list[Customer]):
 @router.post("/")
 def create_cart(new_cart: Customer):
     """ """
-    # create a unique id (incrementing value)
-    # OR create new table primary key will act as unique cart id
-    return {"cart_id": 1}
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text("INSERT INTO cart DEFAULT VALUES RETURNING id"))
+    
+    cart_id = result.scalar()
+
+    return {"cart_id": cart_id}
 
 
 class CartItem(BaseModel):
@@ -97,15 +103,36 @@ class CartItem(BaseModel):
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
-    # item_sku is a potion: GREEN_POTION_1
-    # CartItem is the potion they want
-    # update cart and create cart database (two columns one with primary key unique ID and number of potions)
-    # make inventory checks in the checkout
-    
-    # cartItem will have quantity of potions wanted.
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+        available_pots = result.scalar()
+
+        result = connection.execute(sqlalchemy.text("SELECT customer_green_potions FROM cart"))
 
 
-    # update THE USERS CART AND ITEMS INTO A CART TABLE (DB)
+        # this code checks to see who is adding what to their carts and ensures that customers do not take what someone else
+        # already has
+        grab_column = [row[0] for row in result] # grabs entire column
+
+        grab_column = sum(grab_column) # checking to see if there are pots left
+
+        available_pots -= grab_column    
+        
+        if cart_item.quantity <= available_pots and available_pots > 0:
+            user_pots = cart_item.quantity
+
+            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={user_pots} WHERE id = {cart_id}"))
+        else:
+            # no more pots left!
+            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={0} WHERE id = {cart_id}"))
+
+        
+
+        # updates db based on how many pots they want and their unique id created in create_cart
+        
+
+
+
     return "OK"
 
 
@@ -115,7 +142,29 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
-    # PULL USERS CART ID AND CHECK OUT
-    # UPDATE POTIONS AND GOLD IN DATABASE
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text(f"SELECT customer_green_potions FROM cart WHERE id = {cart_id}"))
+        
+        green_potions = result.scalar()
 
-    return {"total_potions_bought": 1, "total_gold_paid": 50}
+        result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
+        my_green_potions = result.scalar()
+
+        if green_potions > 0:
+            final_price = green_potions * 50
+            my_green_potions -= green_potions
+
+            # update my db and gold
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions={my_green_potions}"))
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold={final_price}"))
+
+            # update customer's db and cart
+            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={0} WHERE id={cart_id}"))
+
+            return {"total_potions_bought": green_potions, "total_gold_paid": final_price}
+        
+        else:
+
+            # update customer's db and cart
+            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={0} WHERE id={cart_id}"))
+            return {"total_potions_bought": 0, "total_gold_paid": 0}
