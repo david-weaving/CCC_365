@@ -62,17 +62,20 @@ def get_bottle_plan():
         result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
         green_ml = result.scalar()
         quantity = 0
+        bottles_to_mix = []
+
         while green_ml >= 100:
             green_ml -= 100 # take out 100 green_ml
             quantity += 1 # give myself a green potion
-
-    print(f"Quantity of potions to make: {quantity}")
-    return [
-            {
+            
+        if quantity > 0:
+            bottles_to_mix.append(            {
                 "potion_type": [0, 100, 0, 0],
                 "quantity": quantity,
-            }
-        ]
+            })
+
+    print(f"Quantity of potions to make: {quantity}")
+    return bottles_to_mix
 
 if __name__ == "__main__":
     print(get_bottle_plan())
