@@ -15,13 +15,17 @@ def get_catalog():
     
     print(f"Catalog has following items: Green Potions: {green_pots} and price is 25 gold ")
 
+    my_catalog = []
 
-    return [
-            {
+    if green_pots > 0:
+        my_catalog.append(
+                        {
                 "sku": "GREEN_POTION_1",
                 "name": "green potion",
                 "quantity": green_pots,
                 "price": 25,
                 "potion_type": [0, 100, 0, 0],
             }
-        ]
+        )
+    return my_catalog
+       
