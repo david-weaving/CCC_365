@@ -158,6 +158,9 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
         my_green_potions = result.scalar()
 
+        result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+        current_gold = result.scalar()
+
         print(f"Customer with ID: {cart_id} is going to purchase {green_potions} Green Potions")
 
         if green_potions > 0:
@@ -166,7 +169,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
 
             # update my db and gold
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions={my_green_potions}"))
-            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold={final_price}"))
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold={final_price + current_gold}"))
 
             # update customer's db and cart
             connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={0} WHERE id={cart_id}"))
