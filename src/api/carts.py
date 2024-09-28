@@ -104,6 +104,8 @@ class CartItem(BaseModel):
 
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
+    # change this function later to make it where if someone tries to buy above the max of something
+    # it will instead give them the most available
     """ """
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
@@ -111,14 +113,28 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
 
         result = connection.execute(sqlalchemy.text("SELECT customer_green_potions FROM cart"))
 
-        
+
+        # this code checks to see who is adding what to their carts and ensures that customers do not take what someone else
+        # already has
+        grab_column = [row[0] for row in result] # grabs entire column
+
+        grab_column = sum(grab_column) # checking to see if there are pots left
+
+        print(f"User {cart_id} wants to put {cart_item.quantity} in their cart")
+
+        available_pots -= grab_column    
         
         if cart_item.quantity <= available_pots and available_pots > 0:
             
             user_pots = cart_item.quantity
-
+            print(f"User {cart_id} has put {user_pots} in their cart")
             connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={user_pots} WHERE id = {cart_id}"))
+        else:
+            # no more pots left!
+            
+            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={0} WHERE id = {cart_id}"))
 
+        
 
         # updates db based on how many pots they want and their unique id created in create_cart
         
@@ -143,7 +159,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         my_green_potions = result.scalar()
 
         if green_potions > 0:
-            final_price = green_potions * 25
+            final_price = green_potions * 50
             my_green_potions -= green_potions
 
             # update my db and gold
