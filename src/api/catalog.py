@@ -13,7 +13,7 @@ def get_catalog():
         result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
         green_pots = result.scalar()
     
-    print(f"Catalog has following items: Green Potions: {green_pots} and price is 30 gold ")
+    print(f"Catalog has following items: Green Potions: {green_pots} and price is 25 gold ")
 
     my_catalog = []
     if green_pots > 0:
