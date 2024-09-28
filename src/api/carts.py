@@ -158,6 +158,8 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
         my_green_potions = result.scalar()
 
+        print(f"Customer with ID: {cart_id} is going to purchase {green_potions} Green Potions")
+
         if green_potions > 0:
             final_price = green_potions * 50
             my_green_potions -= green_potions
