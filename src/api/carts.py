@@ -111,27 +111,14 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
 
         result = connection.execute(sqlalchemy.text("SELECT customer_green_potions FROM cart"))
 
-
-        # this code checks to see who is adding what to their carts and ensures that customers do not take what someone else
-        # already has
-        grab_column = [row[0] for row in result] # grabs entire column
-
-        grab_column = sum(grab_column) # checking to see if there are pots left
-
         
-
-        available_pots -= grab_column    
         
         if cart_item.quantity <= available_pots and available_pots > 0:
             
             user_pots = cart_item.quantity
 
             connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={user_pots} WHERE id = {cart_id}"))
-        else:
-            # no more pots left!
-            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={0} WHERE id = {cart_id}"))
 
-        
 
         # updates db based on how many pots they want and their unique id created in create_cart
         
