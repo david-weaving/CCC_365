@@ -164,7 +164,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         print(f"Customer with ID: {cart_id} is going to purchase {green_potions} Green Potions")
 
         if green_potions > 0:
-            final_price = green_potions * 25
+            final_price = green_potions * 50
             my_green_potions -= green_potions
 
             # update my db and gold
