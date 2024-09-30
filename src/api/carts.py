@@ -130,7 +130,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
             connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={user_pots} WHERE id = {cart_id}"))
         else:
             
-            print(f"User {cart_id} has put {user_pots} in their cart")
+            print(f"User {cart_id} has put {available_pots} in their cart")
             # if user buys more pots than what's available recieve the rest of the batch (or zero)
             connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={available_pots} WHERE id = {cart_id}"))
 
