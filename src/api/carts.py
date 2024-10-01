@@ -165,10 +165,8 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
 
         if green_potions > 0:
             final_price = green_potions * 50
-            my_green_potions -= green_potions
-
             # update my db and gold
-            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions={my_green_potions}"))
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions={my_green_potions-green_potions}"))
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold={final_price + my_current_gold}"))
 
             # update customer's db and cart
