@@ -106,35 +106,18 @@ class CartItem(BaseModel):
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
-        available_pots = result.scalar()
-
-        result = connection.execute(sqlalchemy.text("SELECT customer_green_potions FROM cart"))
-
-
-        # this code checks to see who is adding what to their carts and ensures that customers do not take what someone else
-        # already has
-        grab_column = [row[0] for row in result] # grabs entire column
-
-        grab_column = sum(grab_column) # checking to see if there are pots left
-
-        print(f"User {cart_id} wants to put {cart_item.quantity} in their cart")
-
-        if available_pots > 0: # no negative available pots
-            available_pots -= grab_column    
         
-        if cart_item.quantity <= available_pots and available_pots > 0:
-            
-            user_pots = cart_item.quantity
-            print(f"User {cart_id} has put {user_pots} in their cart")
-            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={user_pots} WHERE id = {cart_id}"))
-        else:
-            
-            print(f"User {cart_id} has put {available_pots} in their cart")
-            # if user buys more pots than what's available recieve the rest of the batch (or zero)
-            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={available_pots} WHERE id = {cart_id}"))
+        if item_sku == "RED_POTION":
+            print(f"Customer {cart_id} wants to buy {cart_item.quantity} Red Potions")
+            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_red_potions ={cart_item.quantity} WHERE id = {cart_id}"))
 
-        
+        if item_sku == "GREEN_POTION":
+            print(f"Customer {cart_id} wants to buy {cart_item.quantity} Green Potions")
+            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions ={cart_item.quantity} WHERE id = {cart_id}"))
+
+        if item_sku == "BLUE_POTION":
+            print(f"Customer {cart_id} wants to buy {cart_item.quantity} Blue Potions")
+            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_blue_potions ={cart_item.quantity} WHERE id = {cart_id}"))
 
         # updates db based on how many pots they want and their unique id created in create_cart
         
@@ -151,32 +134,39 @@ class CartCheckout(BaseModel):
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
     with db.engine.begin() as connection:
+
+        result = connection.execute(sqlalchemy.text(f"SELECT customer_red_potions FROM cart WHERE id = {cart_id}"))
+        red_potions = result.scalar()
+
         result = connection.execute(sqlalchemy.text(f"SELECT customer_green_potions FROM cart WHERE id = {cart_id}"))
-        
         green_potions = result.scalar()
 
-        result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
-        my_green_potions = result.scalar()
+        result = connection.execute(sqlalchemy.text(f"SELECT customer_blue_potions FROM cart WHERE id = {cart_id}"))
+        blue_potions = result.scalar()
 
-        result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
-        my_current_gold = result.scalar()
+        all_potions = red_potions + green_potions + blue_potions
 
         print(f"Customer with ID: {cart_id} is going to purchase {green_potions} Green Potions")
 
-        if green_potions > 0:
-            final_price = green_potions * 50
+        if all_potions > 0:
             # update my db and gold
+            print(f"Customer with ID: {cart_id} is HAS PURCHASED {red_potions} Red Potions")
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions= num_red_potions - {red_potions}"))
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold + {red_potions * 50}"))
+
             print(f"Customer with ID: {cart_id} is HAS PURCHASED {green_potions} Green Potions")
-            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions={my_green_potions-green_potions}"))
-            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold={final_price + my_current_gold}"))
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions= num_green_potions - {green_potions}"))
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold + {green_potions * 50}"))
 
-            # update customer's db and cart
-            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={0} WHERE id={cart_id}"))
+            print(f"Customer with ID: {cart_id} is HAS PURCHASED {blue_potions} Blue Potions")
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions= num_blue_potions - {blue_potions}"))
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold + {blue_potions * 50}"))
+            
 
-            return {"total_potions_bought": green_potions, "total_gold_paid": final_price}
+            return {"total_potions_bought": all_potions, "total_gold_paid": (red_potions * green_potions * blue_potions * 50)}
+        
+
         
         else:
 
-            # update customer's db and cart
-            connection.execute(sqlalchemy.text(f"UPDATE cart SET customer_green_potions={0} WHERE id={cart_id}"))
             return {"total_potions_bought": 0, "total_gold_paid": 0}
