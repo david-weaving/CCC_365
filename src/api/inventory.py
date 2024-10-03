@@ -16,17 +16,32 @@ router = APIRouter(
 def get_inventory():
     """ """
     with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory"))
+        red_pots = result.scalar()
+
         result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
         green_pots = result.scalar()
+
+        result = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory"))
+        blue_pots = result.scalar()
+
+        all_pots = red_pots + green_pots + blue_pots
         
+        result = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory"))
+        red_ml = result.scalar()
+
         result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
         green_ml = result.scalar()
 
+        result = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory"))
+        blue_ml = result.scalar()
+
+        all_ml = red_ml + green_ml + blue_ml
+
         result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
         gold = result.scalar()
-
-    print(f"Inventory Log: Number of green potions: {green_pots}, Amount of ml in barrels: {green_ml}, Amount of gold held to my name: {gold}")
-    return {"number_of_potions": green_pots, "ml_in_barrels": green_ml, "gold": gold}
+    
+    return {"number_of_potions": all_pots, "ml_in_barrels": all_ml, "gold": gold}
 
 # Gets called once a day
 @router.post("/plan")
@@ -37,7 +52,7 @@ def get_capacity_plan():
     """
 
     return {
-        "potion_capacity": 50, # used to both be 0
+        "potion_capacity": 50,
         "ml_capacity": 10000
         }
 
