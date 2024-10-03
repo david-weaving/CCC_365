@@ -144,26 +144,33 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         result = connection.execute(sqlalchemy.text(f"SELECT customer_blue_potions FROM cart WHERE id = {cart_id}"))
         blue_potions = result.scalar()
 
-        all_potions = red_potions + green_potions + blue_potions
 
         print(f"Customer with ID: {cart_id} is going to purchase {green_potions} Green Potions")
 
-        if all_potions > 0:
+        if red_potions > 0:
             # update my db and gold
             print(f"Customer with ID: {cart_id} is HAS PURCHASED {red_potions} Red Potions")
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions= num_red_potions - {red_potions}"))
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold + {red_potions * 50}"))
 
+            return {"total_potions_bought": red_potions, "total_gold_paid": (red_potions * 50)}
+
+        if green_potions > 0:
+
             print(f"Customer with ID: {cart_id} is HAS PURCHASED {green_potions} Green Potions")
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions= num_green_potions - {green_potions}"))
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold + {green_potions * 50}"))
+
+            return {"total_potions_bought": green_potions, "total_gold_paid": (green_potions * 50)}
+
+        if blue_potions > 0:
 
             print(f"Customer with ID: {cart_id} is HAS PURCHASED {blue_potions} Blue Potions")
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions= num_blue_potions - {blue_potions}"))
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold + {blue_potions * 50}"))
             
 
-            return {"total_potions_bought": all_potions, "total_gold_paid": (red_potions * green_potions * blue_potions * 50)}
+            return {"total_potions_bought": blue_potions, "total_gold_paid": (blue_potions * 50)}
         
 
         
