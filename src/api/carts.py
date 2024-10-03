@@ -145,8 +145,6 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         blue_potions = result.scalar()
 
 
-        print(f"Customer with ID: {cart_id} is going to purchase {green_potions} Green Potions")
-
         if red_potions > 0:
             # update my db and gold
             print(f"Customer with ID: {cart_id} is HAS PURCHASED {red_potions} Red Potions")
