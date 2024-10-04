@@ -147,7 +147,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
 
         if red_potions > 0:
             # update my db and gold
-            print(f"Customer with ID: {cart_id} is HAS PURCHASED {red_potions} Red Potions")
+            print(f"Customer with ID: {cart_id} HAS PURCHASED {red_potions} Red Potions")
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions= num_red_potions - {red_potions}"))
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold + {red_potions * 50}"))
 
@@ -155,7 +155,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
 
         if green_potions > 0:
 
-            print(f"Customer with ID: {cart_id} is HAS PURCHASED {green_potions} Green Potions")
+            print(f"Customer with ID: {cart_id} HAS PURCHASED {green_potions} Green Potions")
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions= num_green_potions - {green_potions}"))
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold + {green_potions * 50}"))
 
@@ -163,7 +163,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
 
         if blue_potions > 0:
 
-            print(f"Customer with ID: {cart_id} is HAS PURCHASED {blue_potions} Blue Potions")
+            print(f"Customer with ID: {cart_id} HAS PURCHASED {blue_potions} Blue Potions")
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions= num_blue_potions - {blue_potions}"))
             connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold + {blue_potions * 50}"))
             
