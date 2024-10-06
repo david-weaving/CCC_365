@@ -79,9 +79,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
     for barrel in wholesale_catalog:
         quantity = 0 # might change to an array for quantity of each potion type
-        if barrel.potion_type[0] == 1 and barrel.ml_per_barrel == 200 and red_pots < 10 and barrel.price <= gold:
+        if barrel.potion_type[0] == 1 and barrel.ml_per_barrel == 500 and red_pots < 10 and barrel.price <= gold:
 
-            while barrel.price <= gold and quantity < 5 and barrel.quantity > 0:
+            while barrel.price <= gold and quantity < 1 and barrel.quantity > 0:
                 quantity += 1
                 barrel.quantity -= 1
                 gold -= barrel.price
@@ -96,9 +96,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         }
         )
         quantity=0
-        if barrel.potion_type[1] == 1 and barrel.ml_per_barrel == 200 and green_pots < 10 and barrel.price <= gold:
+        if barrel.potion_type[1] == 1 and barrel.ml_per_barrel == 500 and green_pots < 10 and barrel.price <= gold:
             
-            while barrel.price <= gold and quantity < 5 and barrel.quantity > 0:
+            while barrel.price <= gold and quantity < 1 and barrel.quantity > 0:
                 quantity += 1
                 barrel.quantity -= 1
                 gold -= barrel.price
@@ -114,9 +114,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             }
             )
         quantity=0
-        if barrel.potion_type[2] == 1 and barrel.ml_per_barrel == 200 and blue_pots < 10 and barrel.price <= gold:
+        if barrel.potion_type[2] == 1 and barrel.ml_per_barrel == 500 and blue_pots < 10 and barrel.price <= gold:
      
-            while barrel.price <= gold and quantity < 5 and barrel.quantity > 0:
+            while barrel.price <= gold and quantity < 1 and barrel.quantity > 0:
                 quantity += 1
                 barrel.quantity -= 1
                 gold -= barrel.price
