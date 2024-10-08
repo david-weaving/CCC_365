@@ -20,6 +20,8 @@ def reset():
         connection.execute(sqlalchemy.text("DELETE FROM cart"))
         connection.execute(sqlalchemy.text("ALTER SEQUENCE cart_id_seq RESTART WITH 1")) # start from 1 again
 
+    print("SHOP HAS BEEN RESET")
+
 
     return "OK"
 
