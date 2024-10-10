@@ -134,5 +134,5 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             
 
 
-
+    print(f"Barrels To Buy: {barrels_to_buy}")
     return barrels_to_buy
