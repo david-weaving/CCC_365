@@ -131,7 +131,7 @@ def get_bottle_plan():
                 "quantity": quantity_blue,
             })
         
-
+    print(f"Bottles To Mix: {bottles_to_mix}")
     
     return bottles_to_mix
 
