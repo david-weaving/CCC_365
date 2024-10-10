@@ -81,17 +81,19 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
     Start with 1 capacity for 50 potions and 1 capacity for 10000 ml of potion. Each additional 
     capacity unit costs 1000 gold.
     """
-    with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
-        gold = result.scalar()
+    # with db.engine.begin() as connection:
+    #     result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+    #     gold = result.scalar()
 
-        if gold >= 1000:
-            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold=gold-{1000}"))
-            connection.execute(sqlalchemy.text(f"UPDATE capacity SET potions = potions + {50}"))
-            connection.execute(sqlalchemy.text(f"UPDATE capacity SET ml = ml + {10000}"))
+    #     if gold >= 1000:
+    #         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold=gold-{1000}"))
+    #         connection.execute(sqlalchemy.text(f"UPDATE capacity SET potions = potions + {50}"))
+    #         connection.execute(sqlalchemy.text(f"UPDATE capacity SET ml = ml + {10000}"))
 
-        else:
-            print("No new plan bought")
+    #     else:
+    #         print("No new plan bought")
+
+    print("No capacity to buy!")
 
 
     return "OK"
