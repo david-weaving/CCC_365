@@ -15,9 +15,9 @@ def get_catalog():
     my_catalog = []
 
     for pot_id, amount, red, green, blue, dark, name in catalog:
-        
+        print(f"ID: {pot_id}, amount: {amount}, potion: {name}")
         if amount > 0:
-            print(f"ID: {pot_id}, amount: {amount}, potion: {name}")
+            
             
             my_catalog.append(
                         {
