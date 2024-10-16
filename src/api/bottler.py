@@ -19,32 +19,24 @@ class PotionInventory(BaseModel):
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
 
     with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id DESC"))
+        potion_table = result.fetchall()
 
-        for potion in potions_delivered: # change db updates for logic within  query calls
-
-            if potion.potion_type[0] == 100:
-
-                print(f"How much RED ml brewed: {potion.quantity*100}")
-                print(f"Number of RED potions made: {potion.quantity}")
-
-                connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml= num_red_ml - {potion.quantity*100}"))
-                connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions= num_red_potions + {potion.quantity}"))
-            
-            if potion.potion_type[1] == 100:
+        for rows in potion_table:
+            for potion in potions_delivered:
                 
-                print(f"How much GREEN ml brewed: {potion.quantity*100}")
-                print(f"Number of GREEN potions made: {potion.quantity}")
+                if tuple(potion.potion_type) == rows[2:6]:
+                    connection.execute(sqlalchemy.text(f"INSERT INTO potion_ledgers (amount, potion_id) VALUES ({potion.quantity}, {rows[0]})"))
+                    connection.execute(sqlalchemy.text(f"UPDATE ml_inventory SET red_ml = red_ml - :total_red"),
+                                       {"total_red": potion.potion_type[0]*potion.quantity})
+                    
+                    connection.execute(sqlalchemy.text(f"UPDATE ml_inventory SET green_ml = green_ml - :total_green"),
+                                       {"total_green": potion.potion_type[1]*potion.quantity})
+                    
+                    connection.execute(sqlalchemy.text(f"UPDATE ml_inventory SET blue_ml = blue_ml - :total_blue"),
+                                       {"total_blue": potion.potion_type[2]*potion.quantity})
 
-                connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml= num_green_ml - {potion.quantity*100}"))
-                connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions= num_green_potions + {potion.quantity}"))
-
-            if potion.potion_type[2] == 100:
-
-                print(f"How much BLUE ml is left after breweing: {potion.quantity*100}")
-                print(f"Number of BLUE potions made: {potion.quantity}")
-
-                connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml= num_blue_ml - {potion.quantity*100}"))
-                connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions= num_blue_potions + {potion.quantity}"))
+                
 
 
         
@@ -62,77 +54,40 @@ def get_bottle_plan():
     """
     Go from barrel to bottle.
     """
-    # GOAL: check how much green ml I have and bottle potions
-
-    # return quantity of potions.
-
-    # potion type needs to be [0,100,0,0]
-
-    # Each bottle has a quantity of what proportion of red, blue, and
-    # green potion to add.
-    # Expressed in integers from 1 to 100 that must sum up to 100.
-
-    # Initial logic: bottle all barrels into red potions.
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory"))
-        red_ml = result.scalar()
-
-        result = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory"))
-        green_ml = result.scalar()
-
-        result = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory"))
-        blue_ml = result.scalar()
-
-
-        quantity_green = 0
-        quantity_blue = 0
-        quantity_red = 0
-        bottles_to_mix = []
+        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id"))
+        potion_table = result.fetchall()
     
+        result = connection.execute(sqlalchemy.text("SELECT red_ml, green_ml, blue_ml, black_ml FROM ml_inventory"))
+        row = result.fetchone()
 
-        # the while loops below are for mixing
-        while red_ml >= 100:
-            red_ml -= 100
-            quantity_red += 1
+        r1,g1,b1,d1 = row[:4]
 
-        while green_ml >= 100:
-            green_ml -= 100
-            quantity_green += 1
-
-        while blue_ml >= 100:
-            blue_ml -= 100
-            quantity_blue += 1
-            
-        if quantity_red > 0:
-
-            print(f"Quantity of RED potions to make: {quantity_red}")
-
-            bottles_to_mix.append(            {
-                "potion_type": [100, 0, 0, 0],
-                "quantity": quantity_red,
-            })
-
-        if quantity_green > 0:
-
-            print(f"Quantity of GREEN potions to make: {quantity_green}")
-
-            bottles_to_mix.append(            {
-                "potion_type": [0, 100, 0, 0],
-                "quantity": quantity_green,
-            })
-
-        if quantity_blue > 0:
-
-            print(f"Quantity of GREEN potions to make: {quantity_blue}")
-
-            bottles_to_mix.append(            {
-                "potion_type": [0, 0, 100, 0],
-                "quantity": quantity_blue,
-            })
         
-    print(f"Bottles To Mix: {bottles_to_mix}")
-    
+        bottles_to_mix = []
+        for rows in potion_table: # grabs each row in the table, each represents a different potion type
+            pot_name, r2,g2,b2,d2 = rows[1:6] # grabs those specific columns
+            #print(pot_name, r2,b2,g2,d2)
+
+            quantity = 0
+            if sum((r1,b1,g1,d1)) > 0: # so we dont append only 0's
+                
+                while r1 >= r2 and g1 >= g2 and b1 >= b2 and d1 >=d2 and quantity < 1: # currently making 1 of every potion I can
+                    r1 -= r2 # r1 represents my inventory, r2 is required potions
+                    g1 -= g2
+                    b1 -= b2
+                    d1 -= d2
+                    quantity += 1
+                
+            print(f"Number of {pot_name} made: {quantity}")
+            if quantity > 0:
+                bottles_to_mix.append({
+                    "potion_type": [r2,g2,b2,g2], # given that row, how many of these potions can I make, if any?
+                    "quantity": quantity,
+                    })
+
+
     return bottles_to_mix
 
 if __name__ == "__main__":
