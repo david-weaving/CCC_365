@@ -26,26 +26,26 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     
     with db.engine.begin() as connection:
 
-        for barrel in barrels_delivered:
+        for barrel in barrels_delivered: # change db updates for logic within  query calls, already changed red: use as reference
             if barrel.potion_type[0] == 1:
                 
                 print(f"Cost deducted for current barrel of red: {barrel.price * barrel.quantity}")
                 print(f"Red ml RECIEVED: {barrel.ml_per_barrel*barrel.quantity}")
-                connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml= num_red_ml + {barrel.ml_per_barrel * barrel.quantity}"))
+                connection.execute(sqlalchemy.text(f"UPDATE ml_inventory SET red_ml= red_ml + {barrel.ml_per_barrel * barrel.quantity}"))
                 connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold - {barrel.price * barrel.quantity}"))
 
             if barrel.potion_type[1] == 1:
 
                 print(f"Cost deducted for current barrel of green: {barrel.price * barrel.quantity}")
                 print(f"Green ml RECIEVED: {barrel.ml_per_barrel*barrel.quantity}")
-                connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml= num_green_ml + {barrel.ml_per_barrel * barrel.quantity}"))
+                connection.execute(sqlalchemy.text(f"UPDATE ml_inventory SET green_ml= green_ml + {barrel.ml_per_barrel * barrel.quantity}"))
                 connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold - {barrel.price * barrel.quantity}"))
 
             if barrel.potion_type[2] == 1:
 
                 print(f"Cost deducted for current barrel of blue: {barrel.price * barrel.quantity}")
                 print(f"Blue ml RECIEVED: {barrel.ml_per_barrel*barrel.quantity}")
-                connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml= num_blue_ml + {barrel.ml_per_barrel * barrel.quantity}"))
+                connection.execute(sqlalchemy.text(f"UPDATE ml_inventory SET blue_ml= blue_ml + {barrel.ml_per_barrel * barrel.quantity}"))
                 connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold= gold - {barrel.price * barrel.quantity}"))
                          
         
@@ -65,21 +65,12 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection:
             result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
             gold = result.scalar()
-                
-            result = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory"))
-            green_pots = result.scalar()
-
-            result = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory"))
-            red_pots = result.scalar()
-
-            result = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory"))
-            blue_pots = result.scalar()
 
     
 
     for barrel in wholesale_catalog:
         quantity = 0 # might change to an array for quantity of each potion type
-        if barrel.potion_type[0] == 1 and barrel.ml_per_barrel == 200 and red_pots < 10 and barrel.price <= gold:
+        if barrel.potion_type[0] == 1 and barrel.ml_per_barrel == 200 and barrel.price <= gold:
 
             while barrel.price <= gold and quantity < 1 and barrel.quantity > 0:
                 quantity += 1
@@ -96,7 +87,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         }
         )
         quantity=0
-        if barrel.potion_type[1] == 1 and barrel.ml_per_barrel == 200 and green_pots < 10 and barrel.price <= gold:
+        if barrel.potion_type[1] == 1 and barrel.ml_per_barrel == 200 and barrel.price <= gold:
             
             while barrel.price <= gold and quantity < 1 and barrel.quantity > 0:
                 quantity += 1
@@ -111,10 +102,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 "sku": barrel.sku,
                 "quantity": quantity,
 
-            }
-            )
+        }
+        )
         quantity=0
-        if barrel.potion_type[2] == 1 and barrel.ml_per_barrel == 200 and blue_pots < 10 and barrel.price <= gold:
+        if barrel.potion_type[2] == 1 and barrel.ml_per_barrel == 200 and barrel.price <= gold:
      
             while barrel.price <= gold and quantity < 1 and barrel.quantity > 0:
                 quantity += 1
@@ -133,6 +124,4 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             )
             
 
-
-    print(f"Barrels To Buy: {barrels_to_buy}")
     return barrels_to_buy
