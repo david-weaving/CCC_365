@@ -81,7 +81,7 @@ def get_bottle_plan():
                     d1 -= d2
                     quantity += 1
                 
-                print(f"Number of {pot_name} made: {quantity}")
+                print(f"Number of {pot_name} TO make: {quantity}")
                 if quantity > 0:
                     bottles_to_mix.append({
                         "potion_type": [r2,g2,b2,d2], # given that row, how many of these potions can I make, if any?
