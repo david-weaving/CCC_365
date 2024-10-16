@@ -27,6 +27,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                 
                 if tuple(potion.potion_type) == rows[2:6]:
                     connection.execute(sqlalchemy.text(f"INSERT INTO potion_ledgers (amount, potion_id) VALUES ({potion.quantity}, {rows[0]})"))
+
                     connection.execute(sqlalchemy.text(f"UPDATE ml_inventory SET red_ml = red_ml - :total_red"),
                                        {"total_red": potion.potion_type[0]*potion.quantity})
                     
@@ -56,7 +57,7 @@ def get_bottle_plan():
     """
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id"))
+        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id DESC"))
         potion_table = result.fetchall()
     
         result = connection.execute(sqlalchemy.text("SELECT red_ml, green_ml, blue_ml, black_ml FROM ml_inventory"))
@@ -80,13 +81,12 @@ def get_bottle_plan():
                     d1 -= d2
                     quantity += 1
                 
-            print(f"Number of {pot_name} made: {quantity}")
-            if quantity > 0:
-                bottles_to_mix.append({
-                    "potion_type": [r2,g2,b2,g2], # given that row, how many of these potions can I make, if any?
-                    "quantity": quantity,
+                print(f"Number of {pot_name} made: {quantity}")
+                if quantity > 0:
+                    bottles_to_mix.append({
+                        "potion_type": [r2,g2,b2,d2], # given that row, how many of these potions can I make, if any?
+                        "quantity": quantity,
                     })
-
 
     return bottles_to_mix
 
