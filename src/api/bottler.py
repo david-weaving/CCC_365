@@ -79,7 +79,7 @@ def get_bottle_plan():
                     g1 -= g2
                     b1 -= b2
                     d1 -= d2
-                    quantity += 1
+                    #quantity += 1
                 
                 print(f"Number of {pot_name} TO make: {quantity}")
                 if quantity > 0:
