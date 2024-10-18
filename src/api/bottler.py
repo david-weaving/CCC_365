@@ -19,7 +19,7 @@ class PotionInventory(BaseModel):
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id DESC"))
+        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id"))
         potion_table = result.fetchall()
 
         for rows in potion_table:
@@ -57,7 +57,7 @@ def get_bottle_plan():
     """
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id DESC"))
+        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id"))
         potion_table = result.fetchall()
     
         result = connection.execute(sqlalchemy.text("SELECT red_ml, green_ml, blue_ml, black_ml FROM ml_inventory"))
