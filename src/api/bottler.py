@@ -19,7 +19,7 @@ class PotionInventory(BaseModel):
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id"))
+        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id DESC"))
         potion_table = result.fetchall()
 
         for rows in potion_table:
@@ -57,7 +57,7 @@ def get_bottle_plan():
     """
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id"))
+        result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id DESC"))
         potion_table = result.fetchall()
     
         result = connection.execute(sqlalchemy.text("SELECT red_ml, green_ml, blue_ml, black_ml FROM ml_inventory"))
@@ -74,7 +74,7 @@ def get_bottle_plan():
             quantity = 0
             if sum((r1,b1,g1,d1)) > 0: # so we dont append only 0's
                 
-                while r1 >= r2 and g1 >= g2 and b1 >= b2 and d1 >=d2 and quantity < 5: # currently making 10 of every potion I can
+                while r1 >= r2 and g1 >= g2 and b1 >= b2 and d1 >=d2 and quantity < 2: # currently making 2 of every potion I can
                     r1 -= r2 # r1 represents my inventory, r2 is required potions
                     g1 -= g2
                     b1 -= b2
