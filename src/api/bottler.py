@@ -19,35 +19,39 @@ class PotionInventory(BaseModel):
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
 
     with db.engine.begin() as connection:
+    # Fetch the potion table once and store the result
         result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id DESC"))
         potion_table = result.fetchall()
 
-        for rows in potion_table:
-            for potion in potions_delivered:
+        insert_values = []
+        update_totals = {"total_red": 0, "total_green": 0, "total_blue": 0}
+
+        potion_dict = {tuple(row[2:6]): row[0] for row in potion_table}
+
+        for potion in potions_delivered:
+            potion_type_tuple = tuple(potion.potion_type)
+
+            if potion_type_tuple in potion_dict:
+                potion_id = potion_dict[potion_type_tuple]
                 
-                if tuple(potion.potion_type) == rows[2:6]:
-                    connection.execute(sqlalchemy.text(f"INSERT INTO potion_ledgers (amount, potion_id) VALUES ({potion.quantity}, {rows[0]})"))
-
-                    connection.execute(sqlalchemy.text(f"UPDATE ml_inventory SET red_ml = red_ml - :total_red"),
-                                       {"total_red": potion.potion_type[0]*potion.quantity})
-                    
-                    connection.execute(sqlalchemy.text(f"UPDATE ml_inventory SET green_ml = green_ml - :total_green"),
-                                       {"total_green": potion.potion_type[1]*potion.quantity})
-                    
-                    connection.execute(sqlalchemy.text(f"UPDATE ml_inventory SET blue_ml = blue_ml - :total_blue"),
-                                       {"total_blue": potion.potion_type[2]*potion.quantity})
-
+                insert_values.append({"potion_id": potion_id, "amount": potion.quantity})
                 
+                
+                update_totals["total_red"] += potion.potion_type[0] * potion.quantity
+                update_totals["total_green"] += potion.potion_type[1] * potion.quantity
+                update_totals["total_blue"] += potion.potion_type[2] * potion.quantity
 
 
-        
+        if insert_values:
+            connection.execute(sqlalchemy.text("INSERT INTO potion_ledgers (potion_id, amount) VALUES (:potion_id, :amount)"),
+                insert_values
+            )
 
-        
+        connection.execute(sqlalchemy.text("UPDATE ml_inventory SET red_ml = red_ml - :total_red, green_ml = green_ml - :total_green, blue_ml = blue_ml - :total_blue"),
+            update_totals
+        )
 
-
-
-    print(f"potions delievered: {potions_delivered} order_id: {order_id}")
-
+    print(f"potions delivered: {potions_delivered} order_id: {order_id}")
     return "OK"
 
 @router.post("/plan")
@@ -81,13 +85,15 @@ def get_bottle_plan():
                     d1 -= d2
                     quantity += 1
                 
-                print(f"Number of {pot_name} TO make: {quantity}")
+                print(f"Number of {pot_name} made: {quantity}")
+                print(f"r:{r2}, b:{b2}, g:{g2}, d{d2}")
                 if quantity > 0:
                     bottles_to_mix.append({
                         "potion_type": [r2,g2,b2,d2], # given that row, how many of these potions can I make, if any?
                         "quantity": quantity,
                     })
 
+    print(bottles_to_mix)
     return bottles_to_mix
 
 if __name__ == "__main__":
