@@ -130,24 +130,28 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     with db.engine.begin() as connection:
 
         result = connection.execute(sqlalchemy.text("SELECT cart_line_item.quantity, potions.price, potions.id FROM cart_line_item JOIN potions ON potions.potion_name = cart_line_item.potion_id WHERE cart_line_item.cart_id = :cart_id"),
-                           {"cart_id": cart_id})
+        {"cart_id": cart_id}
+    )
 
         rows = result.fetchall()
-        total = 0
+        total_pots = 0
+        ledger_entries = []
+        total_gold = 0
+
         for quantity, cost, potion_id in rows:
-        
+            ledger_entries.append({"potion_id": potion_id, "quantity": -quantity})
+            total_gold += quantity * cost
+            total_pots += quantity
 
-            connection.execute(sqlalchemy.text("INSERT INTO potion_ledgers (id, potion_id, amount) VALUES (DEFAULT, :potion_id, :quantity)"),
-                           {"potion_id": potion_id, "quantity": -quantity})
-        
+        connection.execute(sqlalchemy.text("INSERT INTO potion_ledgers (id, potion_id, amount) VALUES (DEFAULT, :potion_id, :quantity)"),
+            ledger_entries
+        )
 
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = gold + :total_gold"),
+            {"total_gold": total_gold}
+        )
 
-            connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = gold + :quantity * :cost"),
-                            {"quantity": quantity, "cost": cost})
-            
-            total += quantity
-    
-    print(f"total_potions_bought: ({total}), total_gold_paid: ({total*cost})")
+    print(f"total_potions_bought: ({total_pots}), total_gold_paid: ({total_gold})")
 
-    return {"total_potions_bought": (total), "total_gold_paid": (total*cost)}
+    return {"total_potions_bought": total_pots, "total_gold_paid": total_gold}
         
