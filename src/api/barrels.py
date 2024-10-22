@@ -35,7 +35,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                 potion_ml["red_ml"] += (barrel.ml_per_barrel * barrel.quantity)
                 gold_cost += barrel.price * barrel.quantity
 
-                print(f"Cost deducted for current barrel of red: {gold_cost}")
+                print(f"Cost deducted for current barrel of red: {barrel.price}")
                 print(f"Red ml RECIEVED: {potion_ml['red_ml']}")
 
 
@@ -44,7 +44,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                 potion_ml["green_ml"] += (barrel.ml_per_barrel * barrel.quantity)
                 gold_cost += barrel.price * barrel.quantity
 
-                print(f"Cost deducted for current barrel of green: {gold_cost}")
+                print(f"Cost deducted for current barrel of green: {barrel.price}")
                 print(f"Green ml RECIEVED: {potion_ml['green_ml']}")
 
             if barrel.potion_type[2] == 1:
@@ -52,7 +52,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                 potion_ml["blue_ml"] += (barrel.ml_per_barrel * barrel.quantity)
                 gold_cost += barrel.price * barrel.quantity
 
-                print(f"Cost deducted for current barrel of blue: {gold_cost}")
+                print(f"Cost deducted for current barrel of blue: {barrel.price}")
                 print(f"Blue ml RECIEVED: {potion_ml['blue_ml']}")
     
                          
