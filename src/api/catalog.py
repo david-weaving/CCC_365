@@ -13,12 +13,12 @@ def get_catalog():
         catalog = result.fetchall()
 
     my_catalog = []
-
+    counter = 0
     for pot_id, amount, red, green, blue, dark, name, price in catalog:
         
         if amount > 0:
             print(f"ID: {pot_id}, amount: {amount}, potion: {name}, price:{price}")
-            
+            counter += 1
             my_catalog.append(
                         {
                 "sku": name,
@@ -30,8 +30,8 @@ def get_catalog():
            
         )
 
-
-    
+        if counter == 6: # this a poor temporary fix to a solution for a problem I JUST NOW LEARNED EXISTED (max of 6 items in catalog)
+            break
 
     return my_catalog
        
