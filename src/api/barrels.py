@@ -78,62 +78,79 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
             gold = result.scalar()
 
-    
+            result = connection.execute(sqlalchemy.text("SELECT (red_ml + green_ml + blue_ml + black_ml) FROM ml_inventory"))
+            all_ml = result.scalar()
+
+            result = connection.execute(sqlalchemy.text("SELECT ml FROM storage"))
+            limit = result.scalar()
+
+    print(f"all my ml: {all_ml}")
+
+    to_buy = 1
+    ml_to_buy = 500
 
     for barrel in wholesale_catalog:
         quantity = 0 # might change to an array for quantity of each potion type
-        if barrel.potion_type[0] == 1 and barrel.ml_per_barrel == 500 and barrel.price <= gold:
+        if barrel.potion_type[0] == 1 and barrel.ml_per_barrel == ml_to_buy and barrel.price <= gold and all_ml < limit:
 
-            while barrel.price <= gold and quantity < 1 and barrel.quantity > 0:
-                quantity += 1
-                barrel.quantity -= 1
-                gold -= barrel.price
+            while barrel.price <= gold and quantity < to_buy and barrel.quantity > 0:
+                all_ml += barrel.ml_per_barrel
+                if all_ml > limit:
+                    break
+                else:
+                    quantity += 1
+                    barrel.quantity -= 1
+                    gold -= barrel.price
                 
-            
-            print(f"Quantity of red barrels looked at: {quantity}")
-            
-            barrels_to_buy.append(
-              {
-            "sku": barrel.sku,
-            "quantity": quantity,
-        }
-        )
-        quantity=0
-        if barrel.potion_type[1] == 1 and barrel.ml_per_barrel == 500 and barrel.price <= gold:
-            
-            while barrel.price <= gold and quantity < 1 and barrel.quantity > 0:
-                quantity += 1
-                barrel.quantity -= 1
-                gold -= barrel.price
-
-            
-            print(f"Quantity of green barrels looked at: {quantity}")
-
-            barrels_to_buy.append(
-                    {
+                
+            if quantity > 0:
+                barrels_to_buy.append(
+                {
                 "sku": barrel.sku,
                 "quantity": quantity,
-
-        }
-        )
+            }
+            )
         quantity=0
-        if barrel.potion_type[2] == 1 and barrel.ml_per_barrel == 500 and barrel.price <= gold:
-     
-            while barrel.price <= gold and quantity < 1 and barrel.quantity > 0:
-                quantity += 1
-                barrel.quantity -= 1
-                gold -= barrel.price
+        if barrel.potion_type[1] == 1 and barrel.ml_per_barrel == ml_to_buy and barrel.price <= gold and all_ml < limit:
+            
+            while barrel.price <= gold and quantity < to_buy and barrel.quantity > 0:
+                all_ml += barrel.ml_per_barrel
+                if all_ml > limit:
+                    break
+                else:
+                    quantity += 1
+                    barrel.quantity -= 1
+                    gold -= barrel.price
 
-
-            print(f"Quantity of blue barrels looked at: {quantity}")
-
-            barrels_to_buy.append(
-                    {
-                "sku": barrel.sku,
-                "quantity": quantity,
+        
+            if quantity > 0:
+                barrels_to_buy.append(
+                        {
+                    "sku": barrel.sku,
+                    "quantity": quantity,
 
             }
             )
-            
+        quantity=0
+        if barrel.potion_type[2] == 1 and barrel.ml_per_barrel == ml_to_buy and barrel.price <= gold and all_ml < limit:
+     
+            while barrel.price <= gold and quantity < to_buy and barrel.quantity > 0:
+                all_ml += barrel.ml_per_barrel
+                if all_ml > limit:
+                    break
+                else:
+                    quantity += 1
+                    barrel.quantity -= 1
+                    gold -= barrel.price
 
+            if quantity > 0:
+                barrels_to_buy.append(
+                        {
+                    "sku": barrel.sku,
+                    "quantity": quantity,
+
+                }
+                )
+            
+    print(barrels_to_buy)
     return barrels_to_buy
