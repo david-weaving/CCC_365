@@ -67,10 +67,17 @@ def get_bottle_plan():
         result = connection.execute(sqlalchemy.text("SELECT red_ml, green_ml, blue_ml, black_ml FROM ml_inventory"))
         row = result.fetchone()
 
+        result = connection.execute(sqlalchemy.text("SELECT SUM(inventory) AS total_inventory FROM ( SELECT COALESCE(SUM(potion_ledgers.amount), 0) AS inventory FROM potions LEFT JOIN potion_ledgers ON potion_ledgers.potion_id = potions.id GROUP BY potions.id ) AS inventory_table;"))
+        all_pots = result.scalar()
+
+        result = connection.execute(sqlalchemy.text("SELECT pots FROM storage"))
+        limit = result.scalar()
+
         r1,g1,b1,d1 = row[:4]
 
         
         bottles_to_mix = []
+        print(f"ALL MY POTS: {all_pots} ")
         for rows in potion_table: # grabs each row in the table, each represents a different potion type
             pot_name, r2,g2,b2,d2 = rows[1:6] # grabs those specific columns
             #print(pot_name, r2,b2,g2,d2)
@@ -78,12 +85,13 @@ def get_bottle_plan():
             quantity = 0
             if sum((r1,b1,g1,d1)) > 0: # so we dont append only 0's
                 
-                while r1 >= r2 and g1 >= g2 and b1 >= b2 and d1 >=d2 and quantity < 4: # currently making 4 of every potion I can
+                while r1 >= r2 and g1 >= g2 and b1 >= b2 and d1 >=d2 and all_pots < limit and quantity < 3: # currently making 3 of every potion I can
                     r1 -= r2 # r1 represents my inventory, r2 is required potions
                     g1 -= g2
                     b1 -= b2
                     d1 -= d2
                     quantity += 1
+                    all_pots += 1
                 
                 print(f"Number of {pot_name} made: {quantity}")
                 print(f"r:{r2}, b:{b2}, g:{g2}, d{d2}")
