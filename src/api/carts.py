@@ -147,7 +147,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             ledger_entries
         )
 
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = gold + :total_gold"),
+        connection.execute(sqlalchemy.text("INSERT INTO gold_ledgers (gold) VALUES (:total_gold)"),
             {"total_gold": total_gold}
         )
 
