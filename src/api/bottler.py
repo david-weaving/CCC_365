@@ -47,8 +47,13 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
                 insert_values
             )
 
-        connection.execute(sqlalchemy.text("UPDATE ml_inventory SET red_ml = red_ml - :total_red, green_ml = green_ml - :total_green, blue_ml = blue_ml - :total_blue"),
-            update_totals
+        connection.execute(sqlalchemy.text("INSERT INTO ml_ledgers (red_ml, green_ml, blue_ml) VALUES (:total_red, :total_green, :total_blue)"),
+        {
+        "total_red": -update_totals["total_red"],
+        "total_green": -update_totals["total_green"],
+        "total_blue": -update_totals["total_blue"]
+        }
+
         )
 
     print(f"potions delivered: {potions_delivered} order_id: {order_id}")
@@ -64,7 +69,7 @@ def get_bottle_plan():
         result = connection.execute(sqlalchemy.text("SELECT * FROM potions ORDER BY id DESC"))
         potion_table = result.fetchall()
     
-        result = connection.execute(sqlalchemy.text("SELECT red_ml, green_ml, blue_ml, black_ml FROM ml_inventory"))
+        result = connection.execute(sqlalchemy.text("SELECT SUM(red_ml), SUM(green_ml), SUM(blue_ml), SUM(dark_ml) FROM ml_ledgers"))
         row = result.fetchone()
 
         result = connection.execute(sqlalchemy.text("SELECT SUM(inventory) AS total_inventory FROM ( SELECT COALESCE(SUM(potion_ledgers.amount), 0) AS inventory FROM potions LEFT JOIN potion_ledgers ON potion_ledgers.potion_id = potions.id GROUP BY potions.id ) AS inventory_table;"))
@@ -78,6 +83,7 @@ def get_bottle_plan():
         
         bottles_to_mix = []
         print(f"ALL MY POTS: {all_pots} ")
+        print(f"Red: {r1}, Green: {g1}, Blue: {b1}, Dark: {d1}")
         for rows in potion_table: # grabs each row in the table, each represents a different potion type
             pot_name, r2,g2,b2,d2 = rows[1:6] # grabs those specific columns
             #print(pot_name, r2,b2,g2,d2)
@@ -85,7 +91,7 @@ def get_bottle_plan():
             quantity = 0
             if sum((r1,b1,g1,d1)) > 0: # so we dont append only 0's
                 
-                while r1 >= r2 and g1 >= g2 and b1 >= b2 and d1 >=d2 and all_pots < limit and quantity < 3: # currently making 3 of every potion I can
+                while r1 >= r2 and g1 >= g2 and b1 >= b2 and d1 >=d2 and all_pots < limit and quantity < 4: # currently making 1 of every potion I can
                     r1 -= r2 # r1 represents my inventory, r2 is required potions
                     g1 -= g2
                     b1 -= b2
