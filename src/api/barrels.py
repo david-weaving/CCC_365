@@ -56,11 +56,12 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                 print(f"Blue ml RECIEVED: {potion_ml['blue_ml']}")
     
                          
-        
-        connection.execute(sqlalchemy.text("UPDATE ml_inventory SET red_ml = red_ml + :red_ml, green_ml = green_ml + :green_ml, blue_ml = blue_ml + :blue_ml"),
-                           potion_ml)
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = gold - :gold_cost"),
-                   {"gold_cost": gold_cost})
+        if potion_ml["red_ml"] + potion_ml["green_ml"] + potion_ml["blue_ml"] != 0:
+
+            connection.execute(sqlalchemy.text("INSERT INTO ml_ledgers (red_ml, green_ml, blue_ml) VALUES (:red_ml,:green_ml,:blue_ml)"),
+                            potion_ml)
+            connection.execute(sqlalchemy.text("INSERT INTO gold_ledgers (gold) VALUES (:gold_cost)"),
+                    {"gold_cost": -gold_cost})
         
         print(f"barrels delievered: {barrels_delivered} order_id: {order_id}")
 
@@ -69,22 +70,25 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 # Gets called once a day
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
-        
+
     print(wholesale_catalog)
 
     barrels_to_buy = []
 
     with db.engine.begin() as connection:
-            result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+            result = connection.execute(sqlalchemy.text("SELECT SUM(gold) FROM gold_ledgers"))
             gold = result.scalar()
 
-            result = connection.execute(sqlalchemy.text("SELECT (red_ml + green_ml + blue_ml + black_ml) FROM ml_inventory"))
+            result = connection.execute(sqlalchemy.text("SELECT (SUM(red_ml) + SUM(green_ml) + SUM(blue_ml) + SUM(dark_ml)) FROM ml_ledgers"))
             all_ml = result.scalar()
 
             result = connection.execute(sqlalchemy.text("SELECT ml FROM storage"))
             limit = result.scalar()
 
+
+
     print(f"all my ml: {all_ml}")
+    print(f"my current gold: {gold}")
 
     to_buy = 1
     ml_to_buy = 500
@@ -101,8 +105,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                     quantity += 1
                     barrel.quantity -= 1
                     gold -= barrel.price
-                
-                
+
+
             if quantity > 0:
                 barrels_to_buy.append(
                 {
@@ -112,7 +116,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             )
         quantity=0
         if barrel.potion_type[1] == 1 and barrel.ml_per_barrel == ml_to_buy and barrel.price <= gold and all_ml < limit:
-            
+
             while barrel.price <= gold and quantity < to_buy and barrel.quantity > 0:
                 all_ml += barrel.ml_per_barrel
                 if all_ml > limit:
@@ -122,7 +126,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                     barrel.quantity -= 1
                     gold -= barrel.price
 
-        
+
             if quantity > 0:
                 barrels_to_buy.append(
                         {
@@ -133,7 +137,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             )
         quantity=0
         if barrel.potion_type[2] == 1 and barrel.ml_per_barrel == ml_to_buy and barrel.price <= gold and all_ml < limit:
-     
+
             while barrel.price <= gold and quantity < to_buy and barrel.quantity > 0:
                 all_ml += barrel.ml_per_barrel
                 if all_ml > limit:
@@ -151,6 +155,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
                 }
                 )
-            
+
     print(barrels_to_buy)
     return barrels_to_buy
