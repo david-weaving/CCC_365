@@ -38,7 +38,7 @@ def get_capacity_plan():
     """
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+        result = connection.execute(sqlalchemy.text("SELECT SUM(gold) FROM global_ledgers"))
         gold = result.scalar()
 
     if gold >= 2000:
