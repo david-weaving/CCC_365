@@ -16,12 +16,12 @@ CREATE TABLE cart_line_item(
     FOREIGN KEY (cart_id) REFERENCES cart(id)
 );
 
-CREATE TABLE global_inventory(
+CREATE TABLE gold_ledgers(
     id INT AUTO_INCREMENT PRIMARY KEY,
-    gold INT NOT NULL DEFAULT 0
+    gold INT NOT NULL DEFAULT 100
 );
 
-CREATE TABLE ml_inventory(
+CREATE TABLE ml_ledgers(
     id INT AUTO_INCREMENT PRIMARY KEY,
     red_ml INT NOT NULL DEFAULT 0,
     green_ml INT NOT NULL DEFAULT 0,
