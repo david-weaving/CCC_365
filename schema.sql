@@ -67,8 +67,8 @@ ORDER BY potions.id
 ---------------------------------------------------------
 
 -- Total inventory
-SELECT red_ml, green_ml, blue_ml, black_ml FROM ml_inventory;
-SELECT gold FROM global_inventory;
+SELECT (SUM(red_ml) +SUM(green_ml) + SUM(blue_ml) + SUM(dark_ml)) FROM ml_ledgers;
+SELECT SUM(gold) FROM gold_ledgers;
 SELECT SUM(inventory) AS total_inventory
 FROM (
     SELECT COALESCE(SUM(potion_ledgers.amount), 0) AS inventory
@@ -80,11 +80,14 @@ FROM (
 ---------------------------------------------------------
 
 -- admin.py, resetting:
-UPDATE global_inventory SET gold = 100;
-UPDATE ml_inventory SET red_ml = 0, green_ml = 0, blue_ml = 0, black_ml = 0;
+DELETE FROM gold_ledgers;
+INSERT INTO gold_ledgers (gold) VALUES (:gold);
+DELETE FROM ml_ledgers;
+INSERT INTO ml_ledgers (red_ml, green_ml, blue_ml, dark_ml) VALUES (:red_ml, :green_ml, :blue_ml, :dark_ml);
 DELETE FROM cart_line_item;
 DELETE FROM cart;
 DELETE FROM potion_ledgers;
+UPDATE storage SET pots = :pots, ml = :ml WHERE id = :id;
 
 ---------------------------------------------------------
 
@@ -115,22 +118,13 @@ ORDER BY
 INSERT INTO potion_ledgers (potion_id, amount)
 VALUES (potion ID, amount of that potion);
 
-UPDATE ml_inventory
-SET red_ml = red_ml - total_red,
-    green_ml = green_ml - total_green,
-    blue_ml = blue_ml - total_blue;
-
 ---------------------------------------------------------
 
 -- barrels
 
-UPDATE ml_inventory 
-SET red_ml = red_ml + :red_ml, 
-    green_ml = green_ml + :green_ml, 
-    blue_ml = blue_ml + :blue_ml
+INSERT INTO ml_ledgers (red_ml, green_ml, blue_ml) VALUES (:red_ml,:green_ml,:blue_ml)
 
-UPDATE global_inventory
-SET gold = gold - cost;
+INSERT INTO gold_ledgers (gold) VALUES (:gold_cost)
 
 
 
@@ -170,8 +164,7 @@ WHERE
 
 INSERT INTO potion_ledgers (id, potion_id, amount) VALUES (DEFAULT, potion ID, -amount);
 
-UPDATE global_inventory 
-SET gold = gold + cost;
+INSERT INTO gold_ledgers (gold) VALUES (:gold_cost) -- where gold is negative
 
 
 ---------------------------------------------------------
