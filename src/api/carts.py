@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from pydantic import BaseModel
 from src.api import auth
 from enum import Enum
-import sqlalchemy as sa
+import sqlalchemy
 from src import database as db
 from base64 import b64encode, b64decode
 import json
