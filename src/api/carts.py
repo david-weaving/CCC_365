@@ -120,9 +120,9 @@ def create_cart(new_cart: Customer):
     with db.engine.begin() as connection:
         result = connection.execute(
         sqlalchemy.text(
-            "INSERT INTO cart (id, class, level) VALUES (DEFAULT, :character_class, :level) RETURNING id"
+            "INSERT INTO cart (id, class, level, name) VALUES (DEFAULT, :character_class, :level, :name) RETURNING id"
                 ),
-            {"character_class": new_cart.character_class, "level": new_cart.level}
+            {"character_class": new_cart.character_class, "level": new_cart.level, "name": new_cart.customer_name}
 )
 
     cart_id = result.scalar()
@@ -161,6 +161,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         result = connection.execute(sqlalchemy.text("SELECT cart_line_item.quantity, potions.price, potions.id FROM cart_line_item JOIN potions ON potions.potion_name = cart_line_item.potion_id WHERE cart_line_item.cart_id = :cart_id"),
         {"cart_id": cart_id}
     )
+        
 
         rows = result.fetchall()
         total_pots = 0
@@ -180,6 +181,10 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             {"total_gold": total_gold}
         )
 
+        connection.execute(
+            sqlalchemy.text("UPDATE cart_line_item SET cost = :total_gold WHERE cart_id = :cart_id"),
+            {"total_gold": total_gold, "cart_id": cart_id}
+        )
     print(f"total_potions_bought: ({total_pots}), total_gold_paid: ({total_gold})")
 
     return {"total_potions_bought": total_pots, "total_gold_paid": total_gold}
