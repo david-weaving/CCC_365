@@ -25,6 +25,23 @@ class search_sort_order(str, Enum):
     asc = "asc"
     desc = "desc"   
 
+from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel
+from src.api import auth
+from enum import Enum
+import sqlalchemy 
+from src import database as db
+
+class search_sort_options(str, Enum):
+    customer_name = "customer_name"
+    item_sku = "item_sku"
+    line_item_total = "line_item_total"
+    timestamp = "timestamp"
+
+class search_sort_order(str, Enum):
+    asc = "asc"
+    desc = "desc"   
+
 @router.get("/search/", tags=["search"])
 def search_orders(
     customer_name: str = "",
@@ -38,12 +55,11 @@ def search_orders(
     """
     try:
         with db.engine.begin() as connection:
-            # Debug print statements
             print(f"Search page: {search_page}")
             print(f"Customer name: {customer_name}")
             print(f"Potion SKU: {potion_sku}")
 
-            # Simple query to get first 5 results
+            # Simple query to get all results
             query = """
                 SELECT 
                     cli.primary_key as line_item_id,
@@ -55,20 +71,25 @@ def search_orders(
                 JOIN cart c ON cli.cart_id = c.id
             """
             
-            # Execute and get all results first (for debugging)
             result = connection.execute(sqlalchemy.text(query))
             all_rows = result.fetchall()
             
             print(f"Total rows found: {len(all_rows)}")
 
-            # Take first 5 for first page
-            if search_page == "next":
-                results = all_rows[5:10]
-                print("Getting next page")
+            # Figure out which page we're on
+            if search_page.startswith("page_"):
+                current_page = int(search_page.split("_")[1])
             else:
-                results = all_rows[:5]
-                print("Getting first page")
+                current_page = 0
 
+            # Calculate slice indices
+            start_idx = current_page * 5
+            end_idx = start_idx + 5
+            
+            results = all_rows[start_idx:end_idx]
+            
+            print(f"Getting page {current_page}")
+            
             formatted_results = [
                 {
                     "line_item_id": row.line_item_id,
@@ -80,12 +101,15 @@ def search_orders(
                 for row in results
             ]
 
+            # Calculate if there's a next page
+            has_next = len(all_rows) > end_idx
+            
             print(f"Returning {len(formatted_results)} results")
-            print(f"Has more: {len(all_rows) > 5}")
+            print(f"Has next page: {has_next}")
 
             return {
-                "previous": "",
-                "next": "next" if len(all_rows) > 5 else "",
+                "previous": f"page_{current_page-1}" if current_page > 0 else "",
+                "next": f"page_{current_page+1}" if has_next else "",
                 "results": formatted_results
             }
 
