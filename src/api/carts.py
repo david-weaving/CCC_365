@@ -25,6 +25,7 @@ class search_sort_order(str, Enum):
     asc = "asc"
     desc = "desc"   
 
+
 @router.get("/search/", tags=["search"])
 def search_orders(
     customer_name: str = "",
@@ -39,11 +40,11 @@ def search_orders(
             SELECT 
                 cli.primary_key as line_item_id,
                 cli.potion_id as item_sku,
-                c.customer_name,
-                p.price as line_item_total,
+                c.name as customer_name,
+                p.price * cli.quantity as line_item_total,
                 CURRENT_TIMESTAMP as timestamp
             FROM cart_line_item cli
-            JOIN cart c ON cli.cart_id = c.cart_id
+            JOIN cart c ON cli.cart_id = c.id
             JOIN potions p ON cli.potion_id = p.potion_name
             WHERE 1=1
         """
@@ -51,7 +52,7 @@ def search_orders(
 
         # Add filters
         if customer_name:
-            query += " AND LOWER(c.customer_name) LIKE :customer_name"
+            query += " AND LOWER(c.name) LIKE :customer_name"
             params['customer_name'] = f'%{customer_name.lower()}%'
 
         if potion_sku:
@@ -60,10 +61,18 @@ def search_orders(
 
         # Add sorting
         sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
-        query += f" ORDER BY {sort_col.value} {sort_direction}"
+        sort_column = sort_col.value
+        if sort_col == search_sort_options.customer_name:
+            sort_column = "c.name"
+        elif sort_col == search_sort_options.item_sku:
+            sort_column = "cli.potion_id"
+        elif sort_col == search_sort_options.line_item_total:
+            sort_column = "line_item_total"
+        
+        query += f" ORDER BY {sort_column} {sort_direction}"
         
         # Add pagination
-        query += " LIMIT 6"  # Get one extra to check for next page
+        query += " LIMIT 6"
 
         # Execute query
         result = connection.execute(sqlalchemy.text(query), params)
@@ -71,9 +80,8 @@ def search_orders(
 
         # Process results
         has_next = len(rows) > 5
-        results = rows[:5]  # Trim to max 5 results
+        results = rows[:5]
 
-        # Format results
         formatted_results = [
             {
                 "line_item_id": row.line_item_id,
@@ -86,7 +94,7 @@ def search_orders(
         ]
 
         return {
-            "previous": "",  # For now, could implement if needed
+            "previous": "",
             "next": "" if not has_next else "next",
             "results": formatted_results
         }
