@@ -50,7 +50,6 @@ def search_orders(
         """
         params = {}
 
-        # Add filters
         if customer_name:
             query += " AND LOWER(c.name) LIKE :customer_name"
             params['customer_name'] = f'%{customer_name.lower()}%'
@@ -59,7 +58,7 @@ def search_orders(
             query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
             params['potion_sku'] = f'%{potion_sku.lower()}%'
 
-        # Add sorting
+        # sorting
         sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
         sort_column = sort_col.value
         if sort_col == search_sort_options.customer_name:
@@ -70,15 +69,11 @@ def search_orders(
             sort_column = "line_item_total"
         
         query += f" ORDER BY {sort_column} {sort_direction}"
-        
-        # Add pagination
         query += " LIMIT 6"
 
-        # Execute query
         result = connection.execute(sqlalchemy.text(query), params)
         rows = result.fetchall()
 
-        # Process results
         has_next = len(rows) > 5
         results = rows[:5]
 
