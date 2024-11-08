@@ -58,6 +58,7 @@ def search_orders(
             print(f"Search page: {search_page}")
             print(f"Customer name: {customer_name}")
             print(f"Potion SKU: {potion_sku}")
+            print(f"Sorting by: {sort_col} in {sort_order} order")
 
             # Base query
             query = """
@@ -83,9 +84,18 @@ def search_orders(
                 query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
                 params['potion_sku'] = f"%{potion_sku.lower()}%"
 
-            # Add sorting
+            # Add sorting based on column clicked
             sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
-            query += f" ORDER BY customer_name {sort_direction}"
+            
+            # Map the sort_col to the actual column names in the query
+            sort_mapping = {
+                search_sort_options.customer_name: "c.name",
+                search_sort_options.item_sku: "cli.potion_id",
+                search_sort_options.line_item_total: "cli.cost",
+                search_sort_options.timestamp: "timestamp"
+            }
+            
+            query += f" ORDER BY {sort_mapping[sort_col]} {sort_direction}"
             
             # Execute query with params
             result = connection.execute(sqlalchemy.text(query), params)
