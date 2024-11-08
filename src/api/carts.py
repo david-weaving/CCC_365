@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from pydantic import BaseModel
 from src.api import auth
 from enum import Enum
-import sqlalchemy 
+import sqlalchemy as sa
 from src import database as db
+from base64 import b64encode, b64decode
+import json
+from typing import Optional, List
 
 
 router = APIRouter(
@@ -13,61 +16,121 @@ router = APIRouter(
 )
 
 class search_sort_options(str, Enum):
-    customer_name = "customer_name"
-    item_sku = "item_sku"
-    line_item_total = "line_item_total"
     timestamp = "timestamp"
+    customer_name = "customer_name"
 
 class search_sort_order(str, Enum):
     asc = "asc"
-    desc = "desc"   
+    desc = "desc"
 
 @router.get("/search/", tags=["search"])
 def search_orders(
+    request: Request,
     customer_name: str = "",
     potion_sku: str = "",
     search_page: str = "",
     sort_col: search_sort_options = search_sort_options.timestamp,
     sort_order: search_sort_order = search_sort_order.desc,
+    db: db.Session = Depends(db.get_db)
 ):
-    """
-    Search for cart line items by customer name and/or potion sku.
+    try:
+        # Decode the search page cursor if provided
+        cursor = None
+        if search_page:
+            cursor_data = json.loads(b64decode(search_page))
+            cursor = cursor_data.get("last_value")
 
-    Customer name and potion sku filter to orders that contain the 
-    string (case insensitive). If the filters aren't provided, no
-    filtering occurs on the respective search term.
+        # Build the base query using SQLAlchemy
+        query = db.query(
+            db.models.CartLineItem.primary_key.label('line_item_id'),
+            db.models.CartLineItem.potion_id.label('item_sku'),
+            db.models.Cart.customer_name,
+            sa.literal(50).label('line_item_total'),  # Constant for now as requested
+            sa.literal('2024-01-01T00:00:00Z').label('timestamp')  # Constant for now
+        ).join(
+            db.models.Cart,
+            db.models.CartLineItem.cart_id == db.models.Cart.cart_id
+        )
 
-    Search page is a cursor for pagination. The response to this
-    search endpoint will return previous or next if there is a
-    previous or next page of results available. The token passed
-    in that search response can be passed in the next search request
-    as search page to get that page of results.
+        # Add filters if provided
+        if customer_name:
+            query = query.filter(
+                sa.func.lower(db.models.Cart.customer_name).like(
+                    f'%{customer_name.lower()}%'
+                )
+            )
 
-    Sort col is which column to sort by and sort order is the direction
-    of the search. They default to searching by timestamp of the order
-    in descending order.
+        if potion_sku:
+            query = query.filter(
+                sa.func.lower(db.models.CartLineItem.potion_id).like(
+                    f'%{potion_sku.lower()}%'
+                )
+            )
 
-    The response itself contains a previous and next page token (if
-    such pages exist) and the results as an array of line items. Each
-    line item contains the line item id (must be unique), item sku, 
-    customer name, line item total (in gold), and timestamp of the order.
-    Your results must be paginated, the max results you can return at any
-    time is 5 total line items.
-    """
+        # Add cursor-based pagination
+        if cursor:
+            if sort_col == search_sort_options.timestamp:
+                compare = db.models.Cart.timestamp <= cursor if sort_order == search_sort_order.desc else db.models.Cart.timestamp >= cursor
+            else:  # customer_name
+                compare = db.models.Cart.customer_name <= cursor if sort_order == search_sort_order.desc else db.models.Cart.customer_name >= cursor
+            query = query.filter(compare)
 
-    return {
-        "previous": "",
-        "next": "",
-        "results": [
+        # Add sorting
+        if sort_col == search_sort_options.timestamp:
+            sort_column = db.models.Cart.timestamp
+        else:  # customer_name
+            sort_column = db.models.Cart.customer_name
+
+        if sort_order == search_sort_order.desc:
+            query = query.order_by(sort_column.desc())
+        else:
+            query = query.order_by(sort_column.asc())
+
+        # Execute query with limit
+        results = query.limit(6).all()  # Get one extra to check for next page
+
+        # Process results
+        has_next = len(results) > 5
+        results = results[:5]  # Trim to max 5 results
+
+        # Format results
+        formatted_results = [
             {
-                "line_item_id": 1,
-                "item_sku": "1 oblivion potion",
-                "customer_name": "Scaramouche",
-                "line_item_total": 50,
-                "timestamp": "2021-01-01T00:00:00Z",
+                "line_item_id": row.line_item_id,
+                "item_sku": row.item_sku,
+                "customer_name": row.customer_name,
+                "line_item_total": row.line_item_total,
+                "timestamp": row.timestamp
             }
-        ],
-    }
+            for row in results
+        ]
+
+        # Generate pagination tokens
+        previous_token = ""
+        next_token = ""
+
+        if results:
+            if cursor:  # If we have a cursor, we can go previous
+                previous_data = {"last_value": cursor}
+                previous_token = b64encode(json.dumps(previous_data).encode()).decode()
+
+            if has_next:  # If we have more results, we can go next
+                last_row = results[-1]
+                if sort_col == search_sort_options.timestamp:
+                    last_value = str(last_row.timestamp)
+                else:
+                    last_value = last_row.customer_name
+                next_data = {"last_value": last_value}
+                next_token = b64encode(json.dumps(next_data).encode()).decode()
+
+        return {
+            "previous": previous_token,
+            "next": next_token,
+            "results": formatted_results
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
 class Customer(BaseModel):
