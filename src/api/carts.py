@@ -75,7 +75,6 @@ def search_orders(
             
             params = {}
 
-            # Add search conditions if provided
             if customer_name:
                 query += " AND LOWER(c.name) LIKE :customer_name"
                 params['customer_name'] = f"%{customer_name.lower()}%"
@@ -84,10 +83,8 @@ def search_orders(
                 query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
                 params['potion_sku'] = f"%{potion_sku.lower()}%"
 
-            # Add sorting based on column clicked
             sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
-            
-            # Map the sort_col to the actual column names in the query
+
             sort_mapping = {
                 search_sort_options.customer_name: "c.name",
                 search_sort_options.item_sku: "cli.potion_id",
