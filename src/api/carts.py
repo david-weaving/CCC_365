@@ -23,120 +23,54 @@ class search_sort_options(str, Enum):
 
 class search_sort_order(str, Enum):
     asc = "asc"
-    desc = "desc"
+    desc = "desc"   
 
 @router.get("/search/", tags=["search"])
 def search_orders(
-    request: Request,
     customer_name: str = "",
     potion_sku: str = "",
     search_page: str = "",
     sort_col: search_sort_options = search_sort_options.timestamp,
     sort_order: search_sort_order = search_sort_order.desc,
 ):
-    try:
-        # Decode the search page cursor if provided
-        cursor = None
-        if search_page:
-            cursor_data = json.loads(b64decode(search_page))
-            cursor = cursor_data.get("last_value")
+    """
+    Search for cart line items by customer name and/or potion sku.
 
-        # Build the base query
-        query = sa.text("""
-            SELECT 
-                cli.primary_key as line_item_id,
-                cli.potion_id as item_sku,
-                c.customer_name,
-                :gold as line_item_total,
-                :timestamp as timestamp
-            FROM cart_line_item cli
-            JOIN cart c ON cli.cart_id = c.cart_id
-            WHERE 1=1
-        """)
+    Customer name and potion sku filter to orders that contain the 
+    string (case insensitive). If the filters aren't provided, no
+    filtering occurs on the respective search term.
 
-        # Initialize parameters
-        params = {
-            'gold': 50,  # Constant as requested
-            'timestamp': '2024-01-01T00:00:00Z'  # Constant as requested
-        }
+    Search page is a cursor for pagination. The response to this
+    search endpoint will return previous or next if there is a
+    previous or next page of results available. The token passed
+    in that search response can be passed in the next search request
+    as search page to get that page of results.
 
-        # Build the WHERE clause based on filters
-        where_clauses = []
-        if customer_name:
-            where_clauses.append("LOWER(c.customer_name) LIKE :customer_name")
-            params['customer_name'] = f'%{customer_name.lower()}%'
+    Sort col is which column to sort by and sort order is the direction
+    of the search. They default to searching by timestamp of the order
+    in descending order.
 
-        if potion_sku:
-            where_clauses.append("LOWER(cli.potion_id) LIKE :potion_sku")
-            params['potion_sku'] = f'%{potion_sku.lower()}%'
+    The response itself contains a previous and next page token (if
+    such pages exist) and the results as an array of line items. Each
+    line item contains the line item id (must be unique), item sku, 
+    customer name, line item total (in gold), and timestamp of the order.
+    Your results must be paginated, the max results you can return at any
+    time is 5 total line items.
+    """
 
-        # Add cursor pagination
-        if cursor:
-            compare_op = ">=" if sort_order == search_sort_order.asc else "<="
-            if sort_col == search_sort_options.timestamp:
-                where_clauses.append(f"timestamp {compare_op} :cursor")
-            else:
-                where_clauses.append(f"customer_name {compare_op} :cursor")
-            params['cursor'] = cursor
-
-        # Combine WHERE clauses
-        if where_clauses:
-            query = sa.text(str(query) + " AND " + " AND ".join(where_clauses))
-
-        # Add ORDER BY
-        sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
-        query = sa.text(str(query) + f" ORDER BY {sort_col.value} {sort_direction}")
-
-        # Add LIMIT
-        query = sa.text(str(query) + " LIMIT 6")  # Get one extra to check for next page
-
-        # Execute query
-        with db.engine.connect() as connection:
-            result = connection.execute(query, params)
-            results = result.fetchall()
-
-        # Process results
-        has_next = len(results) > 5
-        results = results[:5]  # Trim to max 5 results
-
-        # Format results
-        formatted_results = [
+    return {
+        "previous": "",
+        "next": "",
+        "results": [
             {
-                "line_item_id": row.line_item_id,
-                "item_sku": row.item_sku,
-                "customer_name": row.customer_name,
-                "line_item_total": row.line_item_total,
-                "timestamp": row.timestamp
+                "line_item_id": 1,
+                "item_sku": "1 oblivion potion",
+                "customer_name": "Scaramouche",
+                "line_item_total": 50,
+                "timestamp": "2021-01-01T00:00:00Z",
             }
-            for row in results
-        ]
-
-        # Generate pagination tokens
-        previous_token = ""
-        next_token = ""
-
-        if results:
-            if cursor:  # If we have a cursor, we can go previous
-                previous_data = {"last_value": cursor}
-                previous_token = b64encode(json.dumps(previous_data).encode()).decode()
-
-            if has_next:  # If we have more results, we can go next
-                last_row = results[-1]
-                if sort_col == search_sort_options.timestamp:
-                    last_value = str(last_row.timestamp)
-                else:
-                    last_value = last_row.customer_name
-                next_data = {"last_value": last_value}
-                next_token = b64encode(json.dumps(next_data).encode()).decode()
-
-        return {
-            "previous": previous_token,
-            "next": next_token,
-            "results": formatted_results
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+        ],
+    }
 
 
 class Customer(BaseModel):
