@@ -25,7 +25,6 @@ class search_sort_order(str, Enum):
     asc = "asc"
     desc = "desc"   
 
-
 @router.get("/search/", tags=["search"])
 def search_orders(
     customer_name: str = "",
@@ -38,67 +37,69 @@ def search_orders(
     Search for cart line items by customer name and/or potion sku.
     """
     try:
+        # Get the current page offset
+        page_offset = 0
+        if search_page:
+            page_offset = 5  # Move to next page of 5 items
+
         with db.engine.begin() as connection:
-            # First get total count for pagination
-            count_query = """
-                SELECT COUNT(*) 
+            # Build base query
+            query = """
+                SELECT 
+                    cli.primary_key as line_item_id,
+                    cli.potion_id as item_sku,
+                    c.name as customer_name,
+                    50 as line_item_total,
+                    12 as timestamp
                 FROM cart_line_item cli
                 JOIN cart c ON cli.cart_id = c.id
                 WHERE 1=1
             """
-            params = {}
+            params = {'offset': page_offset}
 
+            # Add search filters
             if customer_name:
-                count_query += " AND LOWER(c.name) LIKE :customer_name"
+                query += " AND LOWER(c.name) LIKE :customer_name"
                 params['customer_name'] = f'%{customer_name.lower()}%'
 
             if potion_sku:
-                count_query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
+                query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
                 params['potion_sku'] = f'%{potion_sku.lower()}%'
 
-            total_count = connection.execute(sqlalchemy.text(count_query), params).scalar()
+            # Add sorting
+            sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
+            query += f" ORDER BY customer_name {sort_direction}"
 
-            # Now get the actual results
-            query = """
-                WITH numbered_rows AS (
-                    SELECT 
-                        cli.primary_key as line_item_id,
-                        cli.potion_id as item_sku,
-                        c.name as customer_name,
-                        12 as timestamp,
-                        ROW_NUMBER() OVER (ORDER BY c.name) as row_num
-                    FROM cart_line_item cli
-                    JOIN cart c ON cli.cart_id = c.id
-                    WHERE 1=1
-            """
-
-            if customer_name:
-                query += " AND LOWER(c.name) LIKE :customer_name"
-
-            if potion_sku:
-                query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
-
-            query += ") SELECT * FROM numbered_rows WHERE row_num <= 5"
-
+            # Add pagination
+            query += " OFFSET :offset LIMIT 6"
+            
+            # Execute query
             result = connection.execute(sqlalchemy.text(query), params)
             rows = result.fetchall()
 
+            # Check if there are more results
+            has_next = len(rows) > 5
+            results = rows[:5]  # Only take 5 results
+
+            # Format results
             formatted_results = [
                 {
                     "line_item_id": row.line_item_id,
                     "item_sku": row.item_sku,
                     "customer_name": row.customer_name,
-                    "line_item_total": 50,
+                    "line_item_total": row.line_item_total,
                     "timestamp": row.timestamp
                 }
-                for row in rows
+                for row in results
             ]
 
-            has_more = total_count > 5
+            # Generate next token
+            next_token = b64encode(str(page_offset + 5).encode()).decode() if has_next else ""
+            prev_token = b64encode(str(page_offset - 5).encode()).decode() if page_offset > 0 else ""
 
             return {
-                "previous": "",
-                "next": "next" if has_more else "",
+                "previous": prev_token,
+                "next": next_token,
                 "results": formatted_results
             }
 
