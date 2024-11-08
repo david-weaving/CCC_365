@@ -16,8 +16,10 @@ router = APIRouter(
 )
 
 class search_sort_options(str, Enum):
-    timestamp = "timestamp"
     customer_name = "customer_name"
+    item_sku = "item_sku"
+    line_item_total = "line_item_total"
+    timestamp = "timestamp"
 
 class search_sort_order(str, Enum):
     asc = "asc"
@@ -31,7 +33,6 @@ def search_orders(
     search_page: str = "",
     sort_col: search_sort_options = search_sort_options.timestamp,
     sort_order: search_sort_order = search_sort_order.desc,
-    db: db.Session = Depends(db.get_db)
 ):
     try:
         # Decode the search page cursor if provided
@@ -40,54 +41,59 @@ def search_orders(
             cursor_data = json.loads(b64decode(search_page))
             cursor = cursor_data.get("last_value")
 
-        # Build the base query using SQLAlchemy
-        query = db.query(
-            db.models.CartLineItem.primary_key.label('line_item_id'),
-            db.models.CartLineItem.potion_id.label('item_sku'),
-            db.models.Cart.customer_name,
-            sa.literal(50).label('line_item_total'),  # Constant for now as requested
-            sa.literal('2024-01-01T00:00:00Z').label('timestamp')  # Constant for now
-        ).join(
-            db.models.Cart,
-            db.models.CartLineItem.cart_id == db.models.Cart.cart_id
-        )
+        # Build the base query
+        query = sa.text("""
+            SELECT 
+                cli.primary_key as line_item_id,
+                cli.potion_id as item_sku,
+                c.customer_name,
+                :gold as line_item_total,
+                :timestamp as timestamp
+            FROM cart_line_item cli
+            JOIN cart c ON cli.cart_id = c.cart_id
+            WHERE 1=1
+        """)
 
-        # Add filters if provided
+        # Initialize parameters
+        params = {
+            'gold': 50,  # Constant as requested
+            'timestamp': '2024-01-01T00:00:00Z'  # Constant as requested
+        }
+
+        # Build the WHERE clause based on filters
+        where_clauses = []
         if customer_name:
-            query = query.filter(
-                sa.func.lower(db.models.Cart.customer_name).like(
-                    f'%{customer_name.lower()}%'
-                )
-            )
+            where_clauses.append("LOWER(c.customer_name) LIKE :customer_name")
+            params['customer_name'] = f'%{customer_name.lower()}%'
 
         if potion_sku:
-            query = query.filter(
-                sa.func.lower(db.models.CartLineItem.potion_id).like(
-                    f'%{potion_sku.lower()}%'
-                )
-            )
+            where_clauses.append("LOWER(cli.potion_id) LIKE :potion_sku")
+            params['potion_sku'] = f'%{potion_sku.lower()}%'
 
-        # Add cursor-based pagination
+        # Add cursor pagination
         if cursor:
+            compare_op = ">=" if sort_order == search_sort_order.asc else "<="
             if sort_col == search_sort_options.timestamp:
-                compare = db.models.Cart.timestamp <= cursor if sort_order == search_sort_order.desc else db.models.Cart.timestamp >= cursor
-            else:  # customer_name
-                compare = db.models.Cart.customer_name <= cursor if sort_order == search_sort_order.desc else db.models.Cart.customer_name >= cursor
-            query = query.filter(compare)
+                where_clauses.append(f"timestamp {compare_op} :cursor")
+            else:
+                where_clauses.append(f"customer_name {compare_op} :cursor")
+            params['cursor'] = cursor
 
-        # Add sorting
-        if sort_col == search_sort_options.timestamp:
-            sort_column = db.models.Cart.timestamp
-        else:  # customer_name
-            sort_column = db.models.Cart.customer_name
+        # Combine WHERE clauses
+        if where_clauses:
+            query = sa.text(str(query) + " AND " + " AND ".join(where_clauses))
 
-        if sort_order == search_sort_order.desc:
-            query = query.order_by(sort_column.desc())
-        else:
-            query = query.order_by(sort_column.asc())
+        # Add ORDER BY
+        sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
+        query = sa.text(str(query) + f" ORDER BY {sort_col.value} {sort_direction}")
 
-        # Execute query with limit
-        results = query.limit(6).all()  # Get one extra to check for next page
+        # Add LIMIT
+        query = sa.text(str(query) + " LIMIT 6")  # Get one extra to check for next page
+
+        # Execute query
+        with db.engine.connect() as connection:
+            result = connection.execute(query, params)
+            results = result.fetchall()
 
         # Process results
         has_next = len(results) > 5
