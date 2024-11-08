@@ -59,13 +59,13 @@ def search_orders(
             print(f"Customer name: {customer_name}")
             print(f"Potion SKU: {potion_sku}")
 
-            # Simple query to get all results
+            # Updated query to use cost from cart_line_item
             query = """
                 SELECT 
                     cli.primary_key as line_item_id,
                     cli.potion_id as item_sku,
                     c.name as customer_name,
-                    50 as line_item_total,
+                    cli.cost as line_item_total,
                     12 as timestamp
                 FROM cart_line_item cli
                 JOIN cart c ON cli.cart_id = c.id
@@ -95,8 +95,8 @@ def search_orders(
                     "line_item_id": row.line_item_id,
                     "item_sku": row.item_sku,
                     "customer_name": row.customer_name,
-                    "line_item_total": 50,
-                    "timestamp": 12
+                    "line_item_total": row.line_item_total,
+                    "timestamp": row.timestamp
                 }
                 for row in results
             ]
