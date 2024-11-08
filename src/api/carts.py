@@ -59,7 +59,7 @@ def search_orders(
             print(f"Customer name: {customer_name}")
             print(f"Potion SKU: {potion_sku}")
 
-            # Updated query to use cost from cart_line_item
+            # Base query
             query = """
                 SELECT 
                     cli.primary_key as line_item_id,
@@ -69,20 +69,36 @@ def search_orders(
                     12 as timestamp
                 FROM cart_line_item cli
                 JOIN cart c ON cli.cart_id = c.id
+                WHERE 1=1
             """
             
-            result = connection.execute(sqlalchemy.text(query))
+            params = {}
+
+            # Add search conditions if provided
+            if customer_name:
+                query += " AND LOWER(c.name) LIKE :customer_name"
+                params['customer_name'] = f"%{customer_name.lower()}%"
+
+            if potion_sku:
+                query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
+                params['potion_sku'] = f"%{potion_sku.lower()}%"
+
+            # Add sorting
+            sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
+            query += f" ORDER BY customer_name {sort_direction}"
+            
+            # Execute query with params
+            result = connection.execute(sqlalchemy.text(query), params)
             all_rows = result.fetchall()
             
             print(f"Total rows found: {len(all_rows)}")
 
-            # Figure out which page we're on
+            # Handle pagination
             if search_page.startswith("page_"):
                 current_page = int(search_page.split("_")[1])
             else:
                 current_page = 0
 
-            # Calculate slice indices
             start_idx = current_page * 5
             end_idx = start_idx + 5
             
@@ -101,7 +117,6 @@ def search_orders(
                 for row in results
             ]
 
-            # Calculate if there's a next page
             has_next = len(all_rows) > end_idx
             
             print(f"Returning {len(formatted_results)} results")
