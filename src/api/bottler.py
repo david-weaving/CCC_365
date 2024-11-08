@@ -85,13 +85,13 @@ def get_bottle_plan():
         print(f"ALL MY POTS: {all_pots} ")
         print(f"Red: {r1}, Green: {g1}, Blue: {b1}, Dark: {d1}")
         for rows in potion_table: # grabs each row in the table, each represents a different potion type
-            pot_name, r2,g2,b2,d2 = rows[1:6] # grabs those specific columns
+            pot_name, r2,g2,b2,d2, price, quantity_to_make = rows[1:8] # grabs those specific columns
             #print(pot_name, r2,b2,g2,d2)
 
             quantity = 0
             if sum((r1,b1,g1,d1)) > 0: # so we dont append only 0's
                 
-                while r1 >= r2 and g1 >= g2 and b1 >= b2 and d1 >=d2 and all_pots < limit and quantity < 4: # currently making 1 of every potion I can
+                while r1 >= r2 and g1 >= g2 and b1 >= b2 and d1 >=d2 and all_pots < limit and quantity < quantity_to_make:
                     r1 -= r2 # r1 represents my inventory, r2 is required potions
                     g1 -= g2
                     b1 -= b2
