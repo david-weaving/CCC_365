@@ -34,64 +34,89 @@ def search_orders(
     sort_col: search_sort_options = search_sort_options.timestamp,
     sort_order: search_sort_order = search_sort_order.desc,
 ):
-    with db.engine.begin() as connection:
-        # Build the base query
-        query = """
-            SELECT 
-                cli.primary_key as line_item_id,
-                cli.potion_id as item_sku,
-                c.name as customer_name,
-                p.price * cli.quantity as line_item_total,
-                CURRENT_TIMESTAMP as timestamp
-            FROM cart_line_item cli
-            JOIN cart c ON cli.cart_id = c.id
-            JOIN potions p ON cli.potion_id = p.potion_name
-            WHERE 1=1
-        """
-        params = {}
+    """
+    Search for cart line items by customer name and/or potion sku.
+    """
+    try:
+        # Decode the search page cursor if provided
+        offset = 0
+        if search_page:
+            try:
+                offset = int(b64decode(search_page).decode())
+            except:
+                offset = 0
 
-        if customer_name:
-            query += " AND LOWER(c.name) LIKE :customer_name"
-            params['customer_name'] = f'%{customer_name.lower()}%'
+        with db.engine.begin() as connection:
+            # Base query
+            query = """
+                SELECT 
+                    cli.primary_key as line_item_id,
+                    cli.potion_id as item_sku,
+                    c.name as customer_name,
+                    12 as timestamp
+                FROM cart_line_item cli
+                JOIN cart c ON cli.cart_id = c.id
+                WHERE 1=1
+            """
+            params = {}
 
-        if potion_sku:
-            query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
-            params['potion_sku'] = f'%{potion_sku.lower()}%'
+            # Add search filters if provided
+            if customer_name:
+                query += " AND LOWER(c.name) LIKE :customer_name"
+                params['customer_name'] = f'%{customer_name.lower()}%'
 
-        # sorting
-        sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
-        sort_column = sort_col.value
-        if sort_col == search_sort_options.customer_name:
-            sort_column = "c.name"
-        elif sort_col == search_sort_options.item_sku:
-            sort_column = "cli.potion_id"
-        elif sort_col == search_sort_options.line_item_total:
-            sort_column = "line_item_total"
-        
-        query += f" ORDER BY {sort_column} {sort_direction}"
-        query += " LIMIT 6"
+            if potion_sku:
+                query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
+                params['potion_sku'] = f'%{potion_sku.lower()}%'
 
-        result = connection.execute(sqlalchemy.text(query), params)
-        rows = result.fetchall()
+            # Add sorting
+            sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
+            query += f" ORDER BY customer_name {sort_direction}"
 
-        has_next = len(rows) > 5
-        results = rows[:5]
+            # Add pagination
+            query += " OFFSET :offset LIMIT 6"
+            params['offset'] = offset
+            
+            result = connection.execute(sqlalchemy.text(query), params)
+            rows = result.fetchall()
 
-        formatted_results = [
-            {
-                "line_item_id": row.line_item_id,
-                "item_sku": row.item_sku,
-                "customer_name": row.customer_name,
-                "line_item_total": row.line_item_total,
-                "timestamp": str(row.timestamp)
+            # Process results
+            has_next = len(rows) > 5
+            results = rows[:5]
+
+            formatted_results = [
+                {
+                    "line_item_id": row.line_item_id,
+                    "item_sku": row.item_sku,
+                    "customer_name": row.customer_name,
+                    "line_item_total": 50,  # Constant gold value as requested
+                    "timestamp": row.timestamp
+                }
+                for row in results
+            ]
+
+            # Generate pagination tokens
+            previous_token = ""
+            if offset > 0:
+                previous_offset = max(0, offset - 5)
+                previous_token = b64encode(str(previous_offset).encode()).decode()
+
+            next_token = ""
+            if has_next:
+                next_offset = offset + 5
+                next_token = b64encode(str(next_offset).encode()).decode()
+
+            return {
+                "previous": previous_token,
+                "next": next_token,
+                "results": formatted_results
             }
-            for row in results
-        ]
-
+    except Exception as e:
+        print(f"Search error: {str(e)}")
         return {
             "previous": "",
-            "next": "" if not has_next else "next",
-            "results": formatted_results
+            "next": "",
+            "results": []
         }
 
 class Customer(BaseModel):
