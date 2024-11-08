@@ -38,79 +38,70 @@ def search_orders(
     Search for cart line items by customer name and/or potion sku.
     """
     try:
-        # Decode the search page cursor if provided
-        offset = 0
-        if search_page:
-            try:
-                offset = int(b64decode(search_page).decode())
-            except:
-                offset = 0
-
         with db.engine.begin() as connection:
-            # Base query
-            query = """
-                SELECT 
-                    cli.primary_key as line_item_id,
-                    cli.potion_id as item_sku,
-                    c.name as customer_name,
-                    12 as timestamp
+            # First get total count for pagination
+            count_query = """
+                SELECT COUNT(*) 
                 FROM cart_line_item cli
                 JOIN cart c ON cli.cart_id = c.id
                 WHERE 1=1
             """
             params = {}
 
-            # Add search filters if provided
             if customer_name:
-                query += " AND LOWER(c.name) LIKE :customer_name"
+                count_query += " AND LOWER(c.name) LIKE :customer_name"
                 params['customer_name'] = f'%{customer_name.lower()}%'
 
             if potion_sku:
-                query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
+                count_query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
                 params['potion_sku'] = f'%{potion_sku.lower()}%'
 
-            # Add sorting
-            sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
-            query += f" ORDER BY customer_name {sort_direction}"
+            total_count = connection.execute(sqlalchemy.text(count_query), params).scalar()
 
-            # Add pagination
-            query += " OFFSET :offset LIMIT 6"
-            params['offset'] = offset
-            
+            # Now get the actual results
+            query = """
+                WITH numbered_rows AS (
+                    SELECT 
+                        cli.primary_key as line_item_id,
+                        cli.potion_id as item_sku,
+                        c.name as customer_name,
+                        12 as timestamp,
+                        ROW_NUMBER() OVER (ORDER BY c.name) as row_num
+                    FROM cart_line_item cli
+                    JOIN cart c ON cli.cart_id = c.id
+                    WHERE 1=1
+            """
+
+            if customer_name:
+                query += " AND LOWER(c.name) LIKE :customer_name"
+
+            if potion_sku:
+                query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
+
+            query += ") SELECT * FROM numbered_rows WHERE row_num <= 5"
+
             result = connection.execute(sqlalchemy.text(query), params)
             rows = result.fetchall()
-
-            # Process results
-            has_next = len(rows) > 5
-            results = rows[:5]
 
             formatted_results = [
                 {
                     "line_item_id": row.line_item_id,
                     "item_sku": row.item_sku,
                     "customer_name": row.customer_name,
-                    "line_item_total": 50,  # Constant gold value as requested
+                    "line_item_total": 50,
                     "timestamp": row.timestamp
                 }
-                for row in results
+                for row in rows
             ]
 
-            # Generate pagination tokens
-            previous_token = ""
-            if offset > 0:
-                previous_offset = max(0, offset - 5)
-                previous_token = b64encode(str(previous_offset).encode()).decode()
-
-            next_token = ""
-            if has_next:
-                next_offset = offset + 5
-                next_token = b64encode(str(next_offset).encode()).decode()
+            has_more = total_count > 5
 
             return {
-                "previous": previous_token,
-                "next": next_token,
+                "previous": "",
+                "next": "next" if has_more else "",
                 "results": formatted_results
             }
+
     except Exception as e:
         print(f"Search error: {str(e)}")
         return {
