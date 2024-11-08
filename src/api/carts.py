@@ -120,7 +120,7 @@ def search_orders(
             formatted_results = [
                 {
                     "line_item_id": row.line_item_id,
-                    "item_sku": f"{row.raw_potion_id.replace('_', ' ')} ({row.quantity})",
+                    "item_sku": f"{row.raw_potion_id.replace('_', ' ')} {row.quantity}",
                     "customer_name": row.customer_name,
                     "line_item_total": row.line_item_total,
                     "timestamp": row.timestamp
