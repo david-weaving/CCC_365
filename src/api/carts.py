@@ -64,7 +64,8 @@ def search_orders(
             query = """
                 SELECT 
                     cli.primary_key as line_item_id,
-                    cli.potion_id as item_sku,
+                    cli.potion_id as raw_potion_id,
+                    cli.quantity as quantity,
                     c.name as customer_name,
                     cli.cost as line_item_total,
                     12 as timestamp
@@ -75,6 +76,7 @@ def search_orders(
             
             params = {}
 
+            # Add search conditions if provided
             if customer_name:
                 query += " AND LOWER(c.name) LIKE :customer_name"
                 params['customer_name'] = f"%{customer_name.lower()}%"
@@ -83,8 +85,10 @@ def search_orders(
                 query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
                 params['potion_sku'] = f"%{potion_sku.lower()}%"
 
+            # Add sorting based on column clicked
             sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
-
+            
+            # Map the sort_col to the actual column names in the query
             sort_mapping = {
                 search_sort_options.customer_name: "c.name",
                 search_sort_options.item_sku: "cli.potion_id",
@@ -116,7 +120,7 @@ def search_orders(
             formatted_results = [
                 {
                     "line_item_id": row.line_item_id,
-                    "item_sku": row.item_sku,
+                    "item_sku": f"{row.raw_potion_id.replace('_', ' ')} ({row.quantity})",
                     "customer_name": row.customer_name,
                     "line_item_total": row.line_item_total,
                     "timestamp": row.timestamp
