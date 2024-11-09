@@ -50,17 +50,9 @@ def search_orders(
     sort_col: search_sort_options = search_sort_options.timestamp,
     sort_order: search_sort_order = search_sort_order.desc,
 ):
-    """
-    Search for cart line items by customer name and/or potion sku.
-    """
     try:
         with db.engine.begin() as connection:
-            print(f"Search page: {search_page}")
-            print(f"Customer name: {customer_name}")
-            print(f"Potion SKU: {potion_sku}")
-            print(f"Sorting by: {sort_col} in {sort_order} order")
-
-            # Base query
+            # Base query using the new time column
             query = """
                 SELECT 
                     cli.primary_key as line_item_id,
@@ -68,7 +60,7 @@ def search_orders(
                     cli.quantity as quantity,
                     c.name as customer_name,
                     cli.cost as line_item_total,
-                    12 as timestamp
+                    cli.time as timestamp
                 FROM cart_line_item cli
                 JOIN cart c ON cli.cart_id = c.id
                 WHERE 1=1
@@ -76,7 +68,6 @@ def search_orders(
             
             params = {}
 
-            # Add search conditions if provided
             if customer_name:
                 query += " AND LOWER(c.name) LIKE :customer_name"
                 params['customer_name'] = f"%{customer_name.lower()}%"
@@ -88,21 +79,17 @@ def search_orders(
             # Add sorting based on column clicked
             sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
             
-            # Map the sort_col to the actual column names in the query
             sort_mapping = {
                 search_sort_options.customer_name: "c.name",
                 search_sort_options.item_sku: "cli.potion_id",
                 search_sort_options.line_item_total: "cli.cost",
-                search_sort_options.timestamp: "timestamp"
+                search_sort_options.timestamp: "cli.time"  # Changed to use the new time column
             }
             
             query += f" ORDER BY {sort_mapping[sort_col]} {sort_direction}"
             
-            # Execute query with params
             result = connection.execute(sqlalchemy.text(query), params)
             all_rows = result.fetchall()
-            
-            print(f"Total rows found: {len(all_rows)}")
 
             # Handle pagination
             if search_page.startswith("page_"):
@@ -115,23 +102,18 @@ def search_orders(
             
             results = all_rows[start_idx:end_idx]
             
-            print(f"Getting page {current_page}")
-            
             formatted_results = [
                 {
                     "line_item_id": row.line_item_id,
-                    "item_sku": f"{row.raw_potion_id.replace('_', ' ')} {row.quantity}",
+                    "item_sku": f"{row.raw_potion_id.replace('_', ' ')} ({row.quantity})",
                     "customer_name": row.customer_name,
                     "line_item_total": row.line_item_total,
-                    "timestamp": row.timestamp
+                    "timestamp": str(row.timestamp)
                 }
                 for row in results
             ]
 
             has_next = len(all_rows) > end_idx
-            
-            print(f"Returning {len(formatted_results)} results")
-            print(f"Has next page: {has_next}")
 
             return {
                 "previous": f"page_{current_page-1}" if current_page > 0 else "",
