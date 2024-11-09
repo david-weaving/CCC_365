@@ -52,7 +52,9 @@ def search_orders(
 ):
     try:
         with db.engine.begin() as connection:
-            # Base query using the new time column
+            
+            
+            # so i dont have to write out query a whole bunch
             query = """
                 SELECT 
                     cli.primary_key as line_item_id,
@@ -66,6 +68,8 @@ def search_orders(
                 WHERE 1=1
             """
             
+
+
             params = {}
 
             if customer_name:
@@ -76,14 +80,14 @@ def search_orders(
                 query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
                 params['potion_sku'] = f"%{potion_sku.lower()}%"
 
-            # Add sorting based on column clicked
+            # for sorting
             sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
             
             sort_mapping = {
                 search_sort_options.customer_name: "c.name",
                 search_sort_options.item_sku: "cli.potion_id",
                 search_sort_options.line_item_total: "cli.cost",
-                search_sort_options.timestamp: "cli.time"  # Changed to use the new time column
+                search_sort_options.timestamp: "cli.time"
             }
             
             query += f" ORDER BY {sort_mapping[sort_col]} {sort_direction}"
@@ -91,7 +95,7 @@ def search_orders(
             result = connection.execute(sqlalchemy.text(query), params)
             all_rows = result.fetchall()
 
-            # Handle pagination
+            # pages
             if search_page.startswith("page_"):
                 current_page = int(search_page.split("_")[1])
             else:
@@ -170,12 +174,7 @@ class CartItem(BaseModel):
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     with db.engine.begin() as connection:
         connection.execute(
-            sqlalchemy.text("""
-                INSERT INTO cart_line_item 
-                (primary_key, cart_id, potion_id, quantity, time) 
-                VALUES 
-                (DEFAULT, :cart_id, :item_sku, :quantity, CURRENT_TIMESTAMP)
-            """),
+            sqlalchemy.text("INSERT INTO cart_line_item (primary_key, cart_id, potion_id, quantity, time) VALUES (DEFAULT, :cart_id, :item_sku, :quantity, CURRENT_TIMESTAMP)"),
             {
                 "cart_id": cart_id, 
                 "item_sku": item_sku, 
