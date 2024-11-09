@@ -168,17 +168,23 @@ class CartItem(BaseModel):
 
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
-
     with db.engine.begin() as connection:
-        
-
-        connection.execute(sqlalchemy.text("INSERT INTO cart_line_item (primary_key, cart_id, potion_id, quantity) VALUES (DEFAULT, :cart_id, :item_sku, :quantity)"),
-                                           {"cart_id": cart_id, "item_sku": item_sku, "quantity": cart_item.quantity})        
+        connection.execute(
+            sqlalchemy.text("""
+                INSERT INTO cart_line_item 
+                (primary_key, cart_id, potion_id, quantity, time) 
+                VALUES 
+                (DEFAULT, :cart_id, :item_sku, :quantity, CURRENT_TIMESTAMP)
+            """),
+            {
+                "cart_id": cart_id, 
+                "item_sku": item_sku, 
+                "quantity": cart_item.quantity
+            }
+        )        
 
     print(f"Customer {cart_id} wants {cart_item.quantity} {item_sku}")
-
     return "OK"
-
 
 class CartCheckout(BaseModel):
     payment: str
