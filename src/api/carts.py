@@ -94,17 +94,16 @@ def search_orders(
         
         results = all_rows[start:end]
 
-        for row in results:
-            finished_results = [
-                {
-                    "line_item_id": row.line_item_id,
-                    "item_sku": f"{row.raw_potion_id.replace('_', ' ')} ({row.quantity})",
-                    "customer_name": row.customer_name,
-                    "line_item_total": row.line_item_total,
-                    "timestamp": str(row.timestamp)
-                }
-                
-            ]
+        finished_results = [
+            {
+                "line_item_id": row.line_item_id,
+                "item_sku": f"{row.raw_potion_id.replace('_', ' ')} ({row.quantity})",
+                "customer_name": row.customer_name,
+                "line_item_total": row.line_item_total,
+                "timestamp": str(row.timestamp)
+            }
+            for row in results
+        ]
 
         has_next = len(all_rows) > end
         
