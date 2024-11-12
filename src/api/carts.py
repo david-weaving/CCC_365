@@ -53,32 +53,32 @@ def search_orders(
     with db.engine.begin() as connection:
         query = """
             SELECT 
-                cli.primary_key as line_item_id,
-                cli.potion_id as raw_potion_id,
-                cli.quantity as quantity,
-                c.name as customer_name,
-                cli.cost as line_item_total,
-                cli.time as timestamp
-            FROM cart_line_item cli
-            JOIN cart c ON cli.cart_id = c.id
+                line_items.primary_key as line_item_id,
+                line_items.potion_id as raw_potion_id,
+                line_items.quantity as quantity,
+                carts.name as customer_name,
+                line_items.cost as line_item_total,
+                line_items.time as timestamp
+            FROM cart_line_item line_items
+            JOIN cart carts ON line_items.cart_id = carts.id
             WHERE 1=1
         """
         
         params = {}
         if customer_name:
-            query += " AND LOWER(c.name) LIKE :customer_name"
+            query += " AND LOWER(carts.name) LIKE :customer_name"
             params['customer_name'] = f"%{customer_name.lower()}%"
         if potion_sku:
-            query += " AND LOWER(cli.potion_id) LIKE :potion_sku"
+            query += " AND LOWER(line_items.potion_id) LIKE :potion_sku"
             params['potion_sku'] = f"%{potion_sku.lower()}%"
 
         sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
         
         sort_mapping = {
-            search_sort_options.customer_name: "c.name",
-            search_sort_options.item_sku: "cli.potion_id",
-            search_sort_options.line_item_total: "cli.cost",
-            search_sort_options.timestamp: "cli.time"
+            search_sort_options.customer_name: "carts.name",
+            search_sort_options.item_sku: "line_items.potion_id",
+            search_sort_options.line_item_total: "line_items.cost",
+            search_sort_options.timestamp: "line_items.time"
         }
         
         query += f" ORDER BY {sort_mapping[sort_col]} {sort_direction}"
@@ -86,10 +86,7 @@ def search_orders(
         result = connection.execute(sqlalchemy.text(query), params)
         all_rows = result.fetchall()
 
-        # Parse page number
         current_page = int(search_page.split("_")[1]) if search_page.startswith("page_") else 0
-        
-        # Calculate pagination indices
         start_idx = current_page * 5
         end_idx = start_idx + 5
         
