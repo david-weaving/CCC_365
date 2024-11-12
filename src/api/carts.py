@@ -90,7 +90,7 @@ def search_orders(
 
         current_page = int(search_page.split("_")[1]) if search_page.startswith("page_") else 0
         start = current_page * 5
-        end_ = start + 5
+        end = start + 5
         
         results = all_rows[start:end]
         
