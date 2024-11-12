@@ -50,65 +50,64 @@ def search_orders(
     sort_col: search_sort_options = search_sort_options.timestamp,
     sort_order: search_sort_order = search_sort_order.desc,
 ):
-    with db.engine.begin() as connection:
-        query = """
+    with db.engine.begin() as db_conn:
+        base_query = """
             SELECT 
-                line_items.primary_key as line_item_id,
-                line_items.potion_id as raw_potion_id,
-                line_items.quantity as quantity,
-                carts.name as customer_name,
-                line_items.cost as line_item_total,
-                line_items.time as timestamp
+                line_items.primary_key as id,
+                line_items.potion_id as potion,
+                line_items.quantity as qty,
+                carts.name as customer,
+                line_items.cost as total,
+                line_items.time as ordered_at
             FROM cart_line_item line_items
             JOIN cart carts ON line_items.cart_id = carts.id
             WHERE 1=1
         """
         
-        params = {}
+        filters = {}
         if customer_name:
-            query += " AND LOWER(carts.name) LIKE :customer_name"
-            params['customer_name'] = f"%{customer_name.lower()}%"
+            base_query += " AND LOWER(carts.name) LIKE :customer_name"
+            filters['customer_name'] = f"%{customer_name.lower()}%"
         if potion_sku:
-            query += " AND LOWER(line_items.potion_id) LIKE :potion_sku"
-            params['potion_sku'] = f"%{potion_sku.lower()}%"
+            base_query += " AND LOWER(line_items.potion_id) LIKE :potion_sku"
+            filters['potion_sku'] = f"%{potion_sku.lower()}%"
 
-        sort_direction = "ASC" if sort_order == search_sort_order.asc else "DESC"
+        sort_dir = "ASC" if sort_order == search_sort_order.asc else "DESC"
         
-        sort_mapping = {
+        cols = {
             search_sort_options.customer_name: "carts.name",
             search_sort_options.item_sku: "line_items.potion_id",
             search_sort_options.line_item_total: "line_items.cost",
             search_sort_options.timestamp: "line_items.time"
         }
         
-        query += f" ORDER BY {sort_mapping[sort_col]} {sort_direction}"
+        base_query += f" ORDER BY {cols[sort_col]} {sort_dir}"
         
-        result = connection.execute(sqlalchemy.text(query), params)
-        all_rows = result.fetchall()
-
-        current_page = int(search_page.split("_")[1]) if search_page.startswith("page_") else 0
-        start_idx = current_page * 5
-        end_idx = start_idx + 5
+        rows = db_conn.execute(sqlalchemy.text(base_query), filters).fetchall()
         
-        results = all_rows[start_idx:end_idx]
+        page = int(search_page.split("_")[1]) if search_page.startswith("page_") else 0
+        start = page * 5
+        end = start + 5
         
-        formatted_results = [
+        page_rows = rows[start:end]
+        
+        items = [
             {
-                "line_item_id": row.line_item_id,
-                "item_sku": f"{row.raw_potion_id.replace('_', ' ')} ({row.quantity})",
-                "customer_name": row.customer_name,
-                "line_item_total": row.line_item_total,
-                "timestamp": str(row.timestamp)
+                "line_item_id": row.id,
+                "item_sku": f"{row.potion.replace('_', ' ')} ({row.qty})",
+                "customer_name": row.customer,
+                "line_item_total": row.total,
+                "timestamp": str(row.ordered_at)
             }
-            for row in results
+            for row in page_rows
         ]
 
-        has_next = len(all_rows) > end_idx
+        more_pages = len(rows) > end
         
         return {
-            "previous": f"page_{current_page-1}" if current_page > 0 else "",
-            "next": f"page_{current_page+1}" if has_next else "",
-            "results": formatted_results
+            "previous": f"page_{page-1}" if page > 0 else "",
+            "next": f"page_{page+1}" if more_pages else "",
+            "results": items
         }
 
 class Customer(BaseModel):
