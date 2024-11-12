@@ -94,7 +94,7 @@ def search_orders(
         
         results = all_rows[start:end]
 
-        for row in results
+        for row in results:
             finished_results = [
                 {
                     "line_item_id": row.line_item_id,
