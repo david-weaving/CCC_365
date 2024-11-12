@@ -97,7 +97,7 @@ def search_orders(
         finished_results = [
             {
                 "line_item_id": row.line_item_id,
-                "item_sku": f"{row.raw_potion_id.replace('_', ' ')} ({row.quantity})",
+                "item_sku": f"{row.raw_potion_id.replace('_', '_')} ({row.quantity})", # changed replace ('_', ' ') back to _ so sku is consistent if back end it called
                 "customer_name": row.customer_name,
                 "line_item_total": row.line_item_total,
                 "timestamp": str(row.timestamp)
