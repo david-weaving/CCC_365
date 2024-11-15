@@ -41,7 +41,9 @@ def get_capacity_plan():
         result = connection.execute(sqlalchemy.text("SELECT SUM(gold) FROM gold_ledgers"))
         gold = result.scalar()
 
-    if gold >= 2000:
+    switch = False # this is dumb, but i dont want any new capacity.
+    
+    if switch is True:
         print("Capacity plan looked at.")
         return {
         "potion_capacity": 1,
@@ -72,8 +74,8 @@ def deliver_capacity_plan(capacity_purchase : CapacityPurchase, order_id: int):
 
             print(f"New potion capacity bought: {capacity_purchase.potion_capacity}, {capacity_purchase.ml_capacity}")
 
-            connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = gold - :cost"),
-                               {"cost": cost})
+            connection.execute(sqlalchemy.text("INSERT INTO gold_ledgers (gold) VALUES (:cost)"),
+                    {"gold_cost": -cost})
             
             connection.execute(sqlalchemy.text("UPDATE storage SET pots = pots + :new_pot, ml = ml + :new_ml"),
                                {"new_pot": 50, "new_ml": 10000})
