@@ -5,14 +5,17 @@
 CREATE TABLE cart(
     id INT AUTO_INCREMENT PRIMARY KEY,
     class TEXT NOT NULL DEFAULT 'class',
-    `level` INT NOT NULL DEFAULT 0
+    `level` INT NOT NULL DEFAULT 0,
+    name TEXT DEFAULT NULL
 );
 
 CREATE TABLE cart_line_item(
     primary_key INT AUTO_INCREMENT PRIMARY KEY,
     cart_id INT,
-    potion_id TEXT NOT NULL 'no pot',
+    potion_id TEXT NOT NULL DEFAULT 'no pot',
     quantity INT NOT NULL DEFAULT 0,
+    cost NOT NULL DEFAULT 0,
+    time TIME DEFAULT NULL,
     FOREIGN KEY (cart_id) REFERENCES cart(id)
 );
 
